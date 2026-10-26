@@ -35,6 +35,9 @@
 | 13 | **8 distrik dipertahankan untuk 1.0** (Q5) | §4.2, §21 |
 | 14 | **The Hive opsional** untuk ending (Q3) | §14.1, §24.1 |
 | 15 | **Semua item punya berat; berat memengaruhi kecepatan gerak** | §8.1, §8.3, §8.5, §15.1, §20, §22 |
+| 16 | **Kereta dorong opsional** (Q7) | §8.5 aturan 4 & 7, cut list §21 |
+| 17 | **Berat senjata & armor dihitung, termasuk di hotbar** (Q8) | §8.5 aturan 6 |
+| 18 | **Fatigue = −15% stamina saja** (Q9) | §7.5, §20 |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -467,7 +470,7 @@ night_raid_score = menit_di_luar + 0.2 × zombie_dibunuh_saat_malam
 | Konsekuensi | Detail |
 |-------------|--------|
 | Shelter tanpa kamu | Auto-resolve ×0,85; kalau breached, **25% isi storage hilang** (dicuri/dihancurkan) |
-| **Fatigue** | 1 hari setelah raid: stamina maks −15%, hunger & thirst drain +20% |
+| **Fatigue** | 1 hari setelah raid: **stamina maks −15% saja** (keputusan Q9). Tidak ada penalti hunger/thirst — dua penalti sekaligus terasa menghukum |
 | Tidak bisa memperbaiki | Tidak ada perbaikan struktur selama malam; kamu pulang ke kerusakan |
 | Kembalinya berat | Perjalanan pulang saat subuh tetap harus ditempuh dengan berat bawaan (§8.5); muatan penuh = lambat |
 | Risiko mati | Mati di luar = corpse bag (semua loot raid ada di situ), hadiah hangus, respawn subuh |
@@ -609,8 +612,10 @@ Ini jawaban untuk "kenapa pemain tidak boleh sekadar memaksa berat": saat dikeja
 1. **Selalu tampilkan kg dan status** di HUD (bukan hanya saat buka inventory). Pemain harus tahu ia melambat **sebelum** dikejar.
 2. **Tidak ada berat tersembunyi.** Semua item menampilkan kg di tooltip.
 3. Barang misi (radio part, blueprint) **tidak** dihitung berat — jangan pernah membuat progresi cerita gagal karena tas penuh.
-4. Loot besar (generator part, turret) tidak bisa dibawa: harus dipasang di tempat atau diangkut lewat **dua kali perjalanan** dengan kereta dorong (craft: scrap 8 + wood 4, 20 kg, muatan 40 kg, tidak bisa masuk bangunan sempit).
+4. Loot besar (generator part, turret) tidak bisa dibawa: harus dipasang di tempat atau diangkut lewat **dua kali perjalanan**. Alat bantu opsional: kereta dorong (craft: scrap 8 + wood 4, 20 kg, muatan 40 kg, tidak bisa masuk bangunan sempit, tidak bisa didorong saat sprint).
 5. Kalau playtest menunjukkan pemain menghabiskan >20% waktu untuk mengatur berat, naikkan kapasitas dasar — jangan hapus sistemnya.
+6. **Senjata dan armor dihitung beratnya, termasuk yang terpasang di hotbar** (keputusan Q8). Ini disengaja: senjata memang barang paling berat (rifle 3,8 kg, axe 3,5 kg, vest 4,0 kg). Pemain yang membawa 4 senjata + vest + helm sudah menghabiskan 17 kg sebelum mengambil loot — itu keputusan, bukan bug. Tidak ada pengecualian untuk slot hotbar.
+7. **Alat bantu angkut bersifat opsional** (keputusan Q7): kereta dorong boleh dipotong kalau Phase 2 mepet, tanpa merusak sistem berat — karena Drop & Run dan perjalanan ganda sudah cukup untuk menopang loop.
 
 **Validasi angka (supaya berat tidak jadi pekerjaan rumah):**
 
@@ -1287,6 +1292,8 @@ BERAT (§8.5)
   ≤50% Ringan ×1.00 · 50–80% Bermuatan ×0.95 · 80–100% Berat ×0.85 · >100% Kelebihan ×0.65
   Kelebihan: tanpa sprint, tanpa dodge, regen ×0.5, suara ×1.35
   Drop bag (G): berat langsung normal, tas bisa diambil 2 hari
+  Senjata & armor di hotbar TETAP dihitung (Q8) — contoh 4 senjata + vest + helm ≈ 17 kg
+  Kereta dorong: opsional (Q7), muatan 40 kg, tidak bisa sprint
 
 KONSUMSI
   Food +40 hunger · Water +50 thirst · Bandage +20 HP · Medkit +50 HP
@@ -1325,7 +1332,7 @@ NIGHT RAID (§7.5)
   Valid: di luar ≥50% malam · Sukses: hidup saat subuh
   Auto-resolve shelter ×0.85 · breach = −25% storage
   Score = menit di luar + 0.2 × kill malam → <6 none, 6–9 Bronze, 10–15 Silver, ≥16 Gold
-  Fatique 1 hari: stamina maks −15%, hunger/thirst drain +20%
+  Fatigue 1 hari: stamina maks −15% (satu-satunya penalti; Q9)
   Horde night: cache minimum Gold
 
 EKONOMI
@@ -1446,6 +1453,7 @@ Gate: 20 tester, funnel hari-5 ≥50%, tidak ada save corruption
 | Skill tree 60 node | ❌ 30 |
 | Mobile / console day-one | ⏸ pasca-1.0 |
 | Mod support | ⏸ pasca-1.0 |
+| Kereta dorong | ⏸ **opsional** — dipotong kalau Phase 2 mepet (Q7/D16) |
 
 ---
 
@@ -1531,6 +1539,9 @@ Per run:   hari bertahan, penyebab mati, jarak dari shelter saat mati, corpse ba
 | D13 | Jumlah distrik di 1.0 | **8 distrik, dipertahankan** (Q5) | Phase 6 menambah Residential Tower, Police/Fire, Quarantine Wall |
 | D14 | Semua item punya berat? | **Ya**, berat memengaruhi kecepatan, sprint, dodge, noise | §8.5; mekanik Drop & Run wajib ada bersamaan |
 | D15 | Berat dasar | **30 kg**, maks 60 kg lewat tas + skill | Kalau playtest mengatur berat >20% waktu, naikkan — jangan hapus |
+| D16 | Kereta dorong | **Opsional** (Q7) | Boleh dipotong tanpa merusak sistem berat (§8.5 aturan 7) |
+| D17 | Berat senjata & armor | **Dihitung semua, termasuk slot hotbar** (Q8) | 4 senjata + vest + helm = 17 kg sebelum loot (§8.5 aturan 6) |
+| D18 | Penalti Fatigue | **−15% stamina maks saja, 1 hari** (Q9) | Tidak ada penalti hunger/thirst; shelter damage sudah jadi penalti utama |
 
 ### 24.2 Masih terbuka (jawab sebelum Phase 1 selesai)
 
@@ -1538,9 +1549,6 @@ Per run:   hari bertahan, penyebab mati, jarak dari shelter saat mati, corpse ba
 |---|-----------|-------------------|----------------|
 | Q4 | Skill tree respec: gratis 1× atau berbayar? | Berbayar (1 rare item) | Menentukan seberapa berani pemain bereksperimen |
 | Q6 | Apakah perlu kesulitan "story mode" (serangan 0,6×)? | Ada sebagai aksesibilitas, tanpa skor | Ramah pemain baru |
-| Q7 | Apakah kereta dorong (20 kg, muatan 40 kg) wajib, atau cukup drop bag? | Kereta ada, tapi opsional — untuk hauling material struktur besar | Menambah objek & pathfinding; bisa dipotong kalau Phase 2 mepet |
-| Q8 | Apakah berat senjata terpasang di hotbar dihitung? | **Ya** (konsisten). Kalau terasa mengganggu, kecualikan senjata hotbar | Kalau dikecualikan, pemain bisa membawa 4 senjata berat gratis |
-| Q9 | Apakah Fatigue setelah night raid perlu ada kalau pemain juga kehilangan shelter damage? | Ada, tapi −15% stamina saja (bukan juga hunger/thirst) kalau playtest bilang terlalu berat | Dua penalti sekaligus bisa terasa menghukum |
 
 ---
 
