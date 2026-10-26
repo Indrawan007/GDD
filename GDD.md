@@ -4,12 +4,12 @@
 
 ### Survival Open World · Shelter · Singleplayer · Godot 4.4
 
-> **Dokumen ini menggantikan v1, v2, v3.0, dan v3.1.**
+> **Dokumen ini menggantikan v1, v2, v3.0, v3.1, dan v3.2.**
 > Arah resmi: **Survival Open World + Shelter**, bukan roguelite per-floor. Yang masih berlaku dari v3.1: Night Director (event, bukan wave), Battery, angka zombie, angka combat, arsitektur Godot, dan disiplin scope. Yang dipensiunkan: struktur 5 floor, Signal, meta tree antar-run.
 
 ---
 
-## 0. Changelog v3.2 — Pivot ke Open World + Shelter
+## 0. Changelog — Pivot v3.2 & penyesuaian v3.3
 
 ### 0.1 Ringkasan pivot
 
