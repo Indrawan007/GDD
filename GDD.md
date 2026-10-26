@@ -1249,7 +1249,6 @@ text
 ## <span style="color:#ffffff;background-color:#252523">📊 10. Key Metrics to Track (Balancing)</span>
 
 ```
-text
 📈 DATA YANG PERLU DI-LOG SAAT PLAYTEST:
 
 ├── Average run duration (target: 20-40 min)
