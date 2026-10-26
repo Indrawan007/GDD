@@ -1,6 +1,6 @@
 # The End Has Come
 
-## Game Design Document v3.0 — Canonical
+## Game Design Document v3.1 — Canonical
 
 ### Top-Down · Roguelite · Singleplayer · Procedural · Godot 4.4
 
@@ -9,7 +9,9 @@
 
 ---
 
-## 0. Changelog v3.0 & Keputusan yang Berubah
+## 0. Changelog & Keputusan yang Berubah
+
+### 0.1 v3.0 — penggabungan v1 + v2
 
 | # | Isu | v1 | v2 | **v3 (berlaku sekarang)** |
 |---|-----|----|----|---------------------------|
@@ -23,6 +25,16 @@
 | 8 | Judul | Dead Pixel: Survive the Night | idem | **The End Has Come** |
 | 9 | Skill tree | 3 cabang in-run | dihapus | **Dihapus** — diganti meta tree + loot (§11) |
 | 10 | Roadmap | 24 minggu, playtest minggu 21 | 26 minggu | **24 minggu, slice-first, playtest minggu 5** (§18) |
+
+### 0.2 v3.1 — hasil diskusi desain
+
+| # | Keputusan | Perubahan di dokumen |
+|---|-----------|----------------------|
+| 11 | **Bunk Down tetap ada, tapi konsekuensinya diperberat** | §4.7 (tabel konsekuensi lengkap), §11.2 aturan 4 (floor yang di-bunk tidak dihitung Signal) |
+| 12 | **Hunger dihapus**, diganti **Battery** (daya lampu) | §6.1, §9.2, §12.1, §17, §19 |
+| 13 | **5 floor dikonfirmasi** | §3.3 (tidak ada perubahan angka) |
+| 14 | **Barricade tetap aksesori** (maks 6), bukan pilar | §9.3 (dikunci sebagai keputusan, bukan "TBD") |
+| 15 | **Malam = waktu loot paling berharga**, bukan menara bertahan | §2.1, §4.6 (baru), §4.4, §9.4, §18, §20 |
 
 **Alasan perubahan besar** (ringkas): v1 dan v2 sebenarnya dua game berbeda yang ditempel. v2 lebih layak dikerjakan untuk solo dev, jadi v2 yang jadi tulang, dan v1 disumbangkan bagian yang masih relevan (crafting, art, audio, UI, komposisi zombie). Yang dibuang adalah semua janji yang saling bertabrakan: target durasi, wave terjadwal + barricade, dan ekonomi scrap yang bisa di-farm dengan sengaja mati.
 
@@ -42,6 +54,7 @@
 | **Art** | Pixel art, tile 16×16, resolusi native 320×180 |
 | **Target platform** | PC (Steam), keyboard+mouse **dan** gamepad |
 | **Durasi run** | **Tidak dijanjikan.** Lihat §3.1 — panjang run adalah konsekuensi struktur, bukan target desain |
+| **Inti malam** | Loot berisiko di luar tempat aman — **bukan** menara bertahan (§4.6, pilar 6) |
 | **Referensi rasa** | Nuclear Throne (feel tembakan), Darkest Dungeon (tekanan ekspedisi), Brotato (skala angka), Project Zomboid (tema) |
 | **Yang dijual** | "3 menit malam yang bikin kamu menyesal karena serakah" |
 
@@ -53,6 +66,8 @@
 
 > Malam turun di kota yang sudah mati. Kamu punya satu siklus siang untuk mempersiapkan diri, dan satu malam untuk bertahan di gedung yang sama. Lift ke bawah baru hidup saat fajar — jadi satu-satunya cara keluar adalah **selamat sampai pagi**. Lima gedung. Lima malam. Satu fajar.
 
+> **Malam bukan menara bertahan.** Malam adalah satu-satunya waktu kontainer terkunci terbuka. Kamu boleh bersembunyi dan hidup, atau keluar dan jadi lebih kuat — dan game tidak akan pernah memilihkan untukmu.
+
 ### 2.2 Design Pillars
 
 | # | Pilar | Konsekuensi desain (wajib dicek tiap fitur) |
@@ -62,6 +77,7 @@
 | 3 | **Bahaya harus bisa dibaca** | Setiap ancaman punya telegraph audio **dan** visual. Tidak ada kematian dari off-screen tanpa tanda. |
 | 4 | **Kegagalan harus terasa seperti keputusan sendiri** | Kematian datang dari loot ke-3 yang tidak perlu, bukan dari angka yang tidak terlihat. |
 | 5 | **Satu malam = satu cerita** | Setiap malam punya event acak/terpicu yang bisa diceritakan ulang. |
+| 6 | **Malam adalah pasar, bukan benteng** | Loot terbaik hanya ada saat malam. Bertahan pasif itu sah, tapi tidak memajukan. Konsekuensi: tiap malam wajib punya 2–3 kesempatan loot berisiko, bukan cuma gelombang musuh (§4.6). |
 
 ### 2.3 Anti-Pilar (yang game ini **bukan**)
 
@@ -103,6 +119,11 @@ MULAI RUN  (pilih survivor + 1 starting perk)
 │        ▼   senja 30s (peringatan, lampu mulai perlu) │
 │   🌙  MALAM   bahaya naik 3 tingkat + event acak /   │
 │              terpicu. Lift terkunci.                 │
+│      ┌──────────────────────────────────────┐        │
+│      │ PILIHAN: sembunyi = aman, 0 loot     │        │
+│      │ atau keluar = loot tier tinggi,      │        │
+│      │ tapi risiko mati jauh dari shelter   │        │
+│      └──────────────────────────────────────┘        │
 │        │                                             │
 │        ▼   subuh 15s (zombie mundur)                 │
 │   🛗  LIFT HIDUP → turun ke floor n+1                │
@@ -190,10 +211,10 @@ Timer siang yang **terlalu pendek** adalah kegagalan desain yang paling mahal: p
 | Reload senjata besar (rifle) | +1.2s real time | — (sudah jadi bagian combat) |
 | Buka kontainer terkunci | +1.5s | butuh pry bar / 1 salvage |
 | Bangun barricade | +6s | 2 wood + 1 scrap |
-| **Bunk Down** (tidur) | Siang dipotong → malam mulai dalam 5s | 1 torch, harus di shelter room, tidak ada zombie dalam 8 tile |
+| **Bunk Down** (tidur) | Siang dipotong → malam mulai dalam 5s | 1 torch, harus di shelter room, tidak ada zombie dalam 8 tile, **tidak bisa di floor 5** |
 | Ganti hari manual | — | **tidak ada** (tidak ada fast-forward) |
 
-`Bunk Down` memberi +30 HP dan +50 stamina, tapi kamu kehilangan sisa siang **dan** memicu 1 event saat malam dimulai (bukan 0). Jadi tidur itu aman-dan-tidak-gratis.
+`Bunk Down` adalah **jalan keluar dari malam, bukan jalan menuju kemenangan.** Ia menyelamatkan nyawa dan itu sudah cukup jadi alasannya ada — tapi daftar konsekuensinya ada di §4.7 dan tidak boleh dikurangi tanpa mengukur ulang §11.2.
 
 ### 4.4 Malam: 3 Sub-fase & Eskalasi Bahaya
 
@@ -227,7 +248,7 @@ Arti konkretnya saat malam:
 2. **Indera zombie naik.** Detect naik sampai 150px dan hearing radius naik 40% di N3.
 3. **Ambient spawn mengalir terus** (§5.4), bukan menunggu wave.
 4. **Event dipicu Night Director** (§5), 2–3 per malam.
-5. **Loot malam aktif.** Kontainer gelap (§9.4) hanya bisa dibuka saat malam, dan isinya 1 tier lebih tinggi.
+5. **Loot malam aktif.** Kontainer gelap (§9.4) hanya bisa dibuka saat malam dan isinya 1 tier lebih tinggi. **Ini alasan utama pemain keluar saat malam** (§4.6).
 
 HUD menampilkan status ini secara eksplisit: ikon bulan + label **Calm / Stirring / Hunted / Overrun** (dari pressure), supaya eskalasi terbaca, bukan cuma terasa.
 
@@ -241,6 +262,50 @@ Malam berakhir **hanya** jika salah satu terpenuhi:
 ```
 
 Bukan kondisi selesai: membunuh semua zombie (tidak akan pernah tercapai, karena ambient spawn terus), keluar map, atau menyentuh lift (lift mati sampai subuh).
+
+### 4.6 Malam Sebagai Waktu Looting (penekanan v3.1)
+
+Ini keputusan rasa yang paling menentukan: **malam bukan soal bertahan, tapi soal berani keluar.** Bertahan pasif harus selalu sah, tapi harus selalu terasa seperti melewatkan sesuatu.
+
+**Aturan yang mengikat sistem lain:**
+
+| # | Aturan | Konsekuensi teknis |
+|---|--------|--------------------|
+| 1 | Setiap malam wajib menawarkan **2–3 peluang loot berisiko** | Map generator menaruh minimal 3 kontainer gelap per floor, tersebar, tidak menumpuk di satu ruangan |
+| 2 | Peluang itu **berjarak** dari shelter | Minimal 5 ruangan dari titik spawn, jadi mengambilnya berarti meninggalkan fallback |
+| 3 | Harus ada **jalur mundur** | Validasi map: tiap kontainer gelap punya ≥2 rute kembali, dan tidak ada dead-end persegi panjang |
+| 4 | Loot malam harus **mengubah run** | Isi: blueprint, electronics, senjata, medkit, ammo khusus. Bukan wood/cloth. Kalau isinya sampah, pemain berhenti keluar dan malam jadi menunggu |
+| 5 | Bahaya naik karena **posisi**, bukan cuma angka | Makin jauh dari shelter, makin padat ambient spawn (density gradient +30% di 2 ruangan terjauh) |
+| 6 | **Boleh gagal keluar** | Kalau pemain kepepet, ia harus bisa memilih kembali ke shelter. Jangan pernah mengunci pintu saat malam |
+
+**Kurva yang diinginkan dalam satu malam:**
+
+```text
+detik 0–40   orientasi. aman-ish. pemain memutuskan: keluar atau tidak
+detik 40–110 puncak loot. pemain jauh dari shelter, pressure naik, event pertama
+detik 110+   "apakah loot terakhir ini layak?" ← momen paling menegangkan
+detik 150–210 kembalinya berat: pressure tinggi, jalur pulang lewat ruangan yang sudah dilalui
+```
+
+Puncak emosi ada di **perjalanan pulang**, bukan di pertarungan. Karena itu semua sistem di atas (barricade, dodge, lampu, event) harus tetap berguna saat pemain sudah tidak butuh apa-apa selain pulang.
+
+> **Soal "apakah 150–210 detik itu pas?"** Jangan dijawab dengan feeling. Yang diukur di playtest: (a) berapa kontainer gelap yang diambil per malam, (b) berapa persen waktu malam dipakai bergerak vs diam, (c) apakah pemain pernah pulang tergesa-gesa. Kalau malam terasa membosankan, **jangan panjangkan timer** — tambah peluang loot atau rapatkan spawn (§5.4). Malam yang terlalu panjang hanya memperpanjang kebosanan.
+
+### 4.7 Bunk Down: Konsekuensi Lengkap
+
+Bunk Down **boleh dipakai, tapi tidak boleh jadi strategi utama.** Semua konsekuensi di bawah ini wajib tampil di layar konfirmasi sebelum pemain menekan tombol — pemain harus memilih sambil tahu harganya.
+
+| # | Konsekuensi | Detail |
+|---|-------------|--------|
+| 1 | **Malam tetap terjadi, kamu yang tidak hadir** | 1 event langsung dipicu saat malam mulai, tanpa jeda 20s seperti biasa (telegraph tetap ada) |
+| 2 | **Loot malam hangus** | Semua kontainer gelap di floor itu tetap terkunci sampai floor berikutnya |
+| 3 | **Tidak ada bonus subuh** | Tidak dapat +10 HP saat fajar |
+| 4 | **Floor ini tidak dihitung untuk Signal** | Signal dihitung dari floor terdalam yang malamnya **selamat tanpa Bunk Down** (§11.2 aturan 4). Ini konsekuensi terberat dan sengaja |
+| 5 | **Hunger diganti Battery — jadi biayanya di daya** | Tidur mengisi HP (+30) dan stamina (penuh), tapi tidak mengisi baterai; kamu mulai malam berikutnya dengan daya apa adanya |
+| 6 | **Drowsy selama 60s setelah bangun** | Spread +30%, detect +10%, tidak bisa sprint |
+| 7 | **Tidak bisa di Floor 5** | Malam boss tidak bisa di-skip. Tidak ada pengecualian, tidak ada item |
+
+Kalau semua ini masih membuat pemain memilih Bunk Down tiap malam, kesalahannya bukan di sini — kesalahannya ada di **siang terlalu pendek** atau **malam terlalu keras**. Perbaiki itu dulu (§20.2).
 
 ---
 
@@ -310,6 +375,7 @@ Catatan: `the_quiet` bukan bug — ia ada di deck supaya ritme malam punya lemba
 | **Jeda spawn ambient** | N1 9s / N2 6s / N3 4s, dibagi `min(pressure, 1.8)` | Mengalir, tidak menumpuk |
 | **Burst event** | 6–10 zombie, jarak antar spawn 0.6–1.2s | Cukup untuk panik, tidak untuk mustahil |
 | **Jarak deteksi maksimum** | **150px** (semua tipe, setelah multiplier) | Di atas 160px zombie mendeteksi dari luar layar = tidak adil |
+| **Gradien jarak dari shelter** | +30% kepadatan ambient di 2 ruangan terjauh | Memberi harga pada jarak, mendukung §4.6 aturan 5 |
 
 Aritmetika floor 1 (malam 150s, budget 24): N1 50s → 5 spawn, N2 63s → 10, N3 37s → 9 = 24. Cocok. **Kalau angka budget dan interval tidak cocok, yang diubah interval-nya** — budget adalah anggaran desain, interval cuma cara membaginya.
 
@@ -325,10 +391,16 @@ Total zombie dibunuh per run penuh: **±180–220**. Cukup untuk merasa kuat, ti
 |------|-----------|--------|
 | **HP** | 100 | Tidak regen. Sembuh lewat item, Bunk Down (+30), atau subuh (+10) |
 | **Stamina** | 100 | Sprint −18/s, regen 22/s setelah jeda 0.8s. Dodge −25 |
-| **Hunger** | 100 | −1 per 15s; di 0 → −1 HP/2s. Makanan +25/+50 |
+| **Battery** | 100 (unit daya) | Bahan bakar semua sumber cahaya. **Tidak** regen otomatis. Flashlight 1.0/s, torch 0.6/s, flare sekali pakai |
 | **Armor** | 0 | 2 slot (vest/helm), reduksi 15–40%, rusak saat kena |
 | **i-frame saat kena** | 0.6s | Wajib. Tanpa ini, kerumunan = kematian instan tanpa counterplay |
 | **Move / Sprint** | 80 / 128 px/s | Sprint hanya bisa sambil tidak menembak |
+
+**Kenapa Battery menggantikan Hunger (keputusan v3.1):**
+
+Hunger adalah meter yang turun karena waktu, tidak peduli apa yang pemain lakukan. Ia menghukum tanpa mengajari, dan di run 5 floor hasilnya hanya jadi gangguan yang diabaikan. Battery mempertahankan fungsi yang sama (resource selalu kurang) tapi **terikat pada keputusan**: menyalakan lampu berarti melihat lebih jauh **dan** terlihat lebih jauh. Dua malam berturut-turut tanpa cukup daya memaksa pemain memilih antara gelap (buta, tapi aman) atau terang (awas, tapi diburu).
+
+Makanan tetap ada sebagai loot, tapi fungsinya berubah: consumable yang memberi **+20 HP dan +25 stamina** — bukan penawar meter. Loot tetap punya "isi yang bisa dipakai sekarang", tanpa jam yang tidak bisa dilawan.
 
 ### 6.2 Kontrol
 
@@ -583,8 +655,9 @@ Boss hanya di Floor 5, satu boss, tiga fase. Tidak ada "random boss per run" —
 | 🪵 Wood | Furnitur, pohon, barricade lama | Barricade, torch, senjata dasar |
 | 🔩 Scrap | Mobil, mesin, zombie industrial | Senjata, ammo, trap, perbaikan |
 | 🧪 Chemical | Apotek, lab, spitter | Medkit, molotov, ammo khusus |
-| 🔌 Electronics | Toko, panel listrik | Flashlight, turret, upgrade lampu |
+| 🔌 Electronics | Toko, panel listrik | Flashlight, turret, **baterai**, upgrade lampu |
 | 🧵 Cloth | Rumah, zombie | Bandage, armor ringan |
+| 🔋 Battery (item) | Kontainer, mesin, craft | Mengisi daya lampu (§6.1). +30 unit per baterai |
 
 ### 9.2 Recipe Inti (12 untuk launch, bukan 20)
 
@@ -601,27 +674,46 @@ Chemical ×2 + Cloth ×1 + Scrap ×1  → Molotov
 Scrap ×8 + Electronics ×3          → Spike trap (DMG 30, sekali pakai)
 Scrap ×10 + Electronics ×4         → Nailgun
 Scrap ×15 + Electronics ×5 + Chemical ×3 → Turret kecil (30s, ammo terbatas)
+Scrap ×3 + Chemical ×1             → Battery +30 daya
 ```
 
 Resep di v1 (20 resep, turret otomatis penuh) dipotong: turret penuh mengubah game jadi tower defense, yang bertentangan dengan §2.3.
 
-### 9.3 Barricade (aksesori, bukan pilar)
+**Anggaran baterai (validasi angka, floor 3 = malam 180s):**
 
-- 1 tile, 120 HP, butuh 6s untuk dipasang, maks 6 barricade aktif.
+```text
+Pakai flashlight penuh 1 malam       180 unit  → butuh 2 baterai
+Mulai floor dengan sisa daya          100 unit
+Ditemukan di kontainer (2–3 per floor) 60–90 unit
+Craft (kalau ada scrap)               +30/baterai
+Kesimpulan: cukup untuk main normal, TIDAK cukup untuk main terang terus
+```
+
+### 9.3 Barricade (aksesori, bukan pilar — **dikunci v3.1**)
+
+Keputusan: barricade tetap alat bantu, **bukan sistem inti**. Alasannya pilar 6: kalau barricade kuat, pemain berhenti keluar saat malam, dan game berubah jadi menara bertahan.
+
+- 1 tile, 120 HP, butuh 6s untuk dipasang, maks **6** barricade aktif.
 - Zombie menyerang barricade 8 DMG/detik; Tank 30/detik.
 - Barricade **tidak** memblokir event (§5.2), hanya memperlambat.
 - Barricade yang hancur memberi +1 wood (dorongan untuk repot memperbaiki).
+- Barricade **tidak bisa** dipasang menutup jalur loot malam secara permanen — maksimal 2 tile berurutan, dan pintu darurat (≥2 rute, §4.6 aturan 3) tidak boleh diblokir total.
+- Kalau playtest menunjukkan pemain menumpuk barricade di satu pintu dan menunggu, **potong jumlah maks jadi 3** sebelum menaikkan HP-nya.
 
 ### 9.4 Loot
 
 | Tier | Kapan | Isi |
 |------|-------|-----|
-| Common | Siang, kontainer biasa | Wood, cloth, food, ammo sedikit |
-| Uncommon | Siang, kontainer terkunci | Scrap, chemical, bandage |
-| **Night-only** | Hanya saat malam, kontainer gelap | Electronics, blueprint, medkit, senjata |
+| Common | Siang, kontainer biasa | Wood, cloth, food, ammo sedikit, battery 1 |
+| Uncommon | Siang, kontainer terkunci | Scrap, chemical, bandage, battery 1–2 |
+| **Night-only** | Hanya saat malam, kontainer gelap | Electronics, blueprint, medkit, senjata, battery 2 |
 | Event | `care_package`, `trader` | 1 rare item + risiko |
 
 Kontainer gelap diberi tanda visual jelas saat siang ("terkunci sampai gelap"). Ini janji ke pemain: **keserakahan selalu ditawarkan lebih dulu, bukan dijebak.**
+
+**Kontrak loot malam (dikunci):** isi kontainer gelap **tidak boleh** berupa wood/cloth/food. Kalau isinya sampah, pemain rasional akan berhenti keluar saat malam, dan seluruh §4.6 runtuh. Minimal 1 dari 3 kontainer gelap per floor harus berisi sesuatu yang mengubah cara main (senjata, blueprint, electronics, mod).
+
+**Distribusi per floor (target, bukan janji):** 3 kontainer gelap, 7–9 kontainer biasa, 1 kontainer terkunci, 1 bench, 1 shelter room, 1 lift.
 
 ---
 
@@ -635,7 +727,9 @@ Step 2  Room placement     → 8–12 ruangan (6–10 tile)
 Step 3  Corridor connect   → L-shape + 1 loop tambahan (WAJIB: tanpa loop, map jadi pohon dan pemain terpojok)
 Step 4  Populate           → spawn, lift, loot, bench, dark zone, shelter room
 Step 5  Validate           → semua ruangan reachable; lift ≤ 3 ruangan dari spawn;
-                            minimal 7 kontainer; minimal 1 shelter room
+                            minimal 7 kontainer; minimal 1 shelter room;
+                            minimal 3 kontainer gelap (§9.4); tiap kontainer gelap
+                            ≥5 ruangan dari spawn dan punya ≥2 rute keluar (§4.6)
 Step 6  Bake navigation    → sekali, saat floor selesai digenerate
 ```
 
@@ -708,6 +802,7 @@ Aturan yang membuat ini tidak bisa dieksploitasi:
 1. Signal dibayar **berdasarkan pencapaian floor tertinggi**, bukan per-item yang dibawa. Mati di floor 1 = dapat sedikit, bukan dapat "tabungan".
 2. Tidak ada konversi Salvage → Signal. Nol.
 3. Blueprint **bukan** mata uang: dibuka lewat kondisi sekali-seumur-hidup (kill 50 walker, kalahkan boss, dll).
+4. **Floor yang malamnya di-Bunk Down tidak dihitung untuk Signal.** Signal memakai *floor terdalam yang malamnya selamat tanpa Bunk Down*. Jadi pemain bisa bunk di floor 2, tetap turun lift, dan lanjut — tapi Signal-nya baru dihitung lagi kalau ia menyelesaikan malam berikutnya. Ini yang mencegah "bunk tiap malam lalu ambil 255 Signal".
 
 ### 11.3 Tabel Signal
 
@@ -722,6 +817,17 @@ Aturan yang membuat ini tidak bisa dieksploitasi:
 | Modifier aktif | ×1.0 – ×2.0 | Pengganda di akhir |
 
 Rata-rata run yang mati di floor 3: **50 Signal**. Kalahkan boss: **255**.
+
+Contoh perhitungan dengan aturan §11.2 (4):
+
+```text
+F1 selamat (malam biasa)   → floor tercatat 1
+F2 bunk down               → floor tercatat tetap 1
+F3 selamat                 → floor tercatat 3   → 50 Signal
+F4 mati                    → run selesai, 50 Signal
+```
+
+Bunk Down jadi trade-off nyata: kamu selamat, tapi kemajuan Signal tertahan satu malam penuh.
 
 ### 11.4 Meta Upgrade
 
@@ -768,7 +874,7 @@ Menampilkan **penyebab mati** secara eksplisit adalah bagian dari pilar 4: kemat
 
 ```text
 ┌────────────────────────────────────────────────┐
-│ ♥100  ⚡85  🍖72     FLOOR 3  ☀ 2:14  🌙 Calm │
+│ ♥100  ⚡85  🔋62     FLOOR 3  ☀ 2:14  🌙 Calm │
 │                                                │
 │                 [ GAME WORLD ]                 │
 │                                                │
@@ -780,7 +886,9 @@ Menampilkan **penyebab mati** secara eksplisit adalah bagian dari pilar 4: kemat
 └────────────────────────────────────────────────┘
 ```
 
-Elemen wajib di HUD: HP, stamina, hunger, **floor**, **fase + timer**, **danger tier**, hotbar, minimap (hanya area terjelajah), banner event (dengan panah arah).
+Elemen wajib di HUD: HP, stamina, **battery (angka + ikon lampu)**, **floor**, **fase + timer**, **danger tier**, hotbar, minimap (hanya area terjelajah), banner event (dengan panah arah), dan **indikator jumlah kontainer gelap tersisa** di floor itu.
+
+Indikator kontainer gelap sengaja di HUD: ia yang membuat pemain memutuskan "masih dua, sayang kalau pulang" — dan keputusan itulah inti malam (§4.6).
 
 ### 12.2 Layar
 
@@ -808,6 +916,7 @@ Elemen wajib di HUD: HP, stamina, hunger, **floor**, **fase + timer**, **danger 
 | SFX Combat | Impact, tail, shell drop, dan **ducking** saat kill besar |
 | SFX Event | Signature unik per event (Echo Migration, Breach, Care Package) |
 | SFX UI | Klik, craft, notifikasi |
+| SFX Daya | Dengung lampu (loop, ikut level daya), klik saat baterai habis (harus terdengar jelas — ini info gameplay), suara pintu kontainer gelap dibuka |
 
 Aturan: **audio adalah sistem gameplay**, bukan hiasan. Pemain harus bisa mengenali event dari suara sebelum melihatnya, dan sebaliknya dari visual sebelum mendengarnya.
 
@@ -1044,9 +1153,16 @@ DEBUG (dev build)
 
 ```text
 PLAYER
-  HP 100 · Stamina 100 · Hunger 100 (−1/15s) · Armor 0–40%
+  HP 100 · Stamina 100 · Battery 100 (tidak regen) · Armor 0–40%
   Walk 80 · Sprint 128 · Aim-walk 60
   i-frame setelah kena 0.6s · Dodge i-frame 0.25s
+  Food: +20 HP, +25 stamina (consumable, bukan meter)
+  Battery: flashlight 1.0/s · torch 0.6/s · item baterai +30 · craft 3 scrap + 1 chemical
+
+BUNK DOWN (§4.7)
+  1 event dipicu langsung · loot malam hangus · tanpa +10 HP subuh
+  floor tidak dihitung Signal · Drowsy 60s (spread +30%, detect +10%)
+  tidak bisa di Floor 5
 
 DUEL MATH
   Walker 30HP → pistol 3 tembakan (1.0s) | wrench 2 pukulan (1.25s)
@@ -1066,7 +1182,7 @@ PRESSURE
 
 ECONOMY
   Salvage: hangus saat mati
-  Signal: 20 / 50 / 95 / 155 / 255 (kumulatif per floor tertinggi)
+  Signal: 20 / 50 / 95 / 155 / 255 (kumulatif, floor terdalam yang selamat TANPA bunk down)
   Meta total ±1.870 Signal ≈ 10–15 run
 ```
 
@@ -1121,12 +1237,17 @@ Gate: bisa main 1 run penuh (mati di floor 1 sampai menang) tanpa crash
 ```text
 ☐ Inventory grid + hotbar + drag/drop
 ☐ Crafting 12 resep + bench
-☐ Barricade + repair + torch/flashlight (lampu memengaruhi deteksi)
+☐ **Battery + flashlight + torch** (daya, drain, dan efek "terlihat" ke deteksi zombie)
+☐ Barricade + repair
 ☐ 2 trap (spike, molotov area)
 ☐ Spitter, Tank, Screamer + special ability masing-masing
 ☐ 8 event (semua kecuali trader & hive_stirs)
-☐ Bunk Down + shelter room
-Gate: pemain yang bagus bisa bertahan malam tanpa menembak sekali pun (stealth/lampu/barricade)
+☐ Bunk Down + shelter room + layar konfirmasi konsekuensi (§4.7)
+☐ 3 kontainer gelap per floor + kontrak loot malam (§9.4)
+Gate (dua bagian, dua-duanya wajib):
+  □ Stealth: pemain bagus bisa selamat satu malam tanpa menembak sekali pun
+  □ Greed: ≥50% tester mengambil minimal 1 kontainer gelap per malam
+    (kalau tidak: loot malam terlalu berbahaya atau isinya terlalu murah)
 ```
 
 ### Phase 4 — Konten & Polish (Minggu 15–18)
@@ -1195,6 +1316,8 @@ Dicatat supaya tidak muncul lagi tanpa keputusan sadar:
 | Deteksi spitter 250px | v2 | Di luar layar = tidak adil (§8.1) |
 | 7 biome / 10 senjata / 30 achievement | v1/v2 | Di luar kapasitas 24 minggu |
 | Judul "Dead Pixel" | v1/v2 | Bertabrakan dengan *Dead Pixels* (CSR-Studios, 2012) — zombie, pixel, prosedural |
+| **Meter Hunger** | v1/v2 | Menghukum karena waktu, bukan karena keputusan; diganti Battery (§6.1) |
+| **Malam sebagai hold-out/tower defense** | v2 | Bertentangan dengan pilar 6: pemain berhenti keluar dan sistem loot malam jadi mati (§4.6) |
 
 ---
 
@@ -1205,7 +1328,8 @@ Dicatat supaya tidak muncul lagi tanpa keputusan sadar:
 ```text
 Per run:   seed, survivor, floor_reached, death_cause, nights_survived,
            signal_earned, duration per fase
-Per floor: waktu siang terpakai, kontainer diambil, barricade dibangun,
+Per floor: waktu siang terpakai, kontainer diambil, **kontainer gelap diambil**,
+           **battery terpakai / sisa**, **% waktu malam bergerak**, barricade dibangun,
            bunk_down (ya/tidak), zombie dibunuh, damage diterima
 Per event: event_id, detik event dimulai, damage diterima 10s setelahnya,
            pemain mati dalam 10s (ya/tidak), respon pemain (lari/fight/hide)
@@ -1221,6 +1345,10 @@ Per event: event_id, detik event dimulai, damage diterima 10s setelahnya,
 | Kematian <10s setelah event mulai | <15% | Perbaiki telegraph / pity rule |
 | Pemain bunk down tiap malam | <25% | Malam terlalu keras atau siang terlalu pendek |
 | Pemain tidak pernah bunk down | >0% (harus ada) | Bunk down kurang jelas ditawarkan |
+| **Kontainer gelap diambil per malam** | ≥1.5 rata-rata | Loot malam terlalu jauh/berbahaya, atau isinya terlalu murah (§4.6) |
+| **Waktu malam dipakai bergerak** | >60% dari durasi malam | Pemain cuma bersembunyi → naikkan daya tarik loot malam, jangan panjangkan timer |
+| **Kematian saat pulang (20% terakhir malam)** | 15–35% dari total kematian | Kalau 0%: pulang terlalu aman. Kalau >50%: jalur pulang kurang adil |
+| **Battery kritis (<15 unit) saat malam** | 20–40% malam | Kalau <10%: daya terlalu longgar. Kalau >50%: terlalu pelit |
 | Median waktu siang terpakai | 70–90% dari timer | Kalau 100%, timer terlalu pendek |
 | Ammo habis tapi tidak bisa craft | <20% run | Naikkan drop scrap / ammo |
 
@@ -1232,17 +1360,28 @@ Per event: event_id, detik event dimulai, damage diterima 10s setelahnya,
 
 ---
 
-## 21. Keputusan Terbuka (untuk didiskusikan)
+## 21. Keputusan (status per v3.1)
 
-| # | Pertanyaan | Default sementara di dokumen ini |
-|---|-----------|----------------------------------|
-| Q1 | Apakah `Bunk Down` terlalu mudah jadi "skip malam"? | Ada, tapi memicu 1 event dan menghanguskan loot malam |
-| Q2 | Apakah Hunger perlu dipertahankan? | Ya, tapi ringan (−1/15s) — kalau playtest mengabaikannya, hapus |
-| Q3 | Barricade inti atau aksesori? | Aksesori (maks 6 aktif) |
-| Q4 | 5 floor cukup, atau 4 floor + 1 boss room terpisah? | 5 floor, boss di puncak floor 5 |
-| Q5 | Judul "The End Has Come" perlu subtitle pemasaran? | Tidak di GDD; diputuskan saat bikin Steam page |
-| Q6 | Apakah survivor berbeda harus mengubah run secara signifikan? | Ya: 1 perk + 1 stat berbeda, bukan karakter baru total |
+### 21.1 Sudah diputuskan
+
+| # | Pertanyaan | Keputusan | Konsekuensi yang diterima |
+|---|-----------|-----------|---------------------------|
+| Q1 | Apakah `Bunk Down` boleh jadi "skip malam"? | **Boleh, dengan konsekuensi penuh** | 7 konsekuensi di §4.7, termasuk floor tidak dihitung Signal |
+| Q2 | Hunger dipertahankan? | **Dihapus**, diganti **Battery** | Resource pressure pindah dari jam ke keputusan lampu (§6.1) |
+| Q3 | Barricade inti atau aksesori? | **Aksesori, maks 6** | Kalau pemain menumpuk, potong jadi 3 dulu sebelum menaikkan HP (§9.3) |
+| Q4 | 5 floor atau 4 + boss room? | **5 floor**, boss di puncak floor 5 | Boss tidak bisa di-Bunk Down (§4.7 #7) |
+| Q7 | Malam = bertahan atau looting? | **Looting berisiko** | Pilar 6 + §4.6; bertahan pasif sah tapi tidak memajukan |
+
+### 21.2 Masih terbuka
+
+| # | Pertanyaan | Default sementara | Kapan harus dijawab |
+|---|-----------|-------------------|---------------------|
+| Q5 | Judul "The End Has Come" perlu subtitle pemasaran? | Tidak di GDD | Saat bikin Steam page (minggu 20) |
+| Q6 | Seberapa beda tiap survivor? | 1 perk + 1 stat, bukan karakter baru | Phase 4 (minggu 15) |
+| Q8 | Perlu "second wind" permanen di meta? | Ada di tier 3 (300 Signal) — **uji dulu**, ini yang paling mudah merusak permadeath | Phase 5 |
+| Q9 | Apakah lift boleh dipakai mundur (kembali ke floor atas)? | Tidak. Satu arah, selalu turun | Phase 2 |
+| Q10 | Berapa lama "Dead Hours" boleh tanpa event? | Maks 25s tanpa event, lalu paksa Tier 1 | Phase 3 |
 
 ---
 
-_versi 3.0 — 26 Oktober 2026_
+_versi 3.1 — 26 Oktober 2026_

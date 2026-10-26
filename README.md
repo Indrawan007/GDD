@@ -2,8 +2,9 @@
 
 Game Design Document (kanonik) untuk game top-down roguelite zombie survival, dibuat dengan Godot 4.4.
 
-- **Dokumen:** [GDD.md](GDD.md) — v3.0 (menggabungkan dan menggantikan v1 + v2)
+- **Dokumen:** [GDD.md](GDD.md) — v3.1 (menggabungkan dan menggantikan v1 + v2)
 - **Struktur:** 5 floor, 1 siklus siang–malam per floor, permadeath
+- **Inti malam:** loot berisiko di luar tempat aman, bukan menara bertahan
 - **Status:** desain, pra-produksi (lihat roadmap §18 di dokumen)
 
-Dokumen v1 dan v2 sudah dilebur ke dalam v3. Ide yang sengaja dipensiunkan dicatat di §19 supaya tidak muncul kembali tanpa keputusan sadar.
+Dokumen v1 dan v2 sudah dilebur ke dalam v3. Ide yang sengaja dipensiunkan dicatat di §19 supaya tidak muncul kembali tanpa keputusan sadar. Keputusan desain yang sudah final ada di §21.1.
