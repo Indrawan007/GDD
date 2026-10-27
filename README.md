@@ -1,6 +1,6 @@
 # The End Has Come
 
-**Survival Open World + Shelter**, top-down pixel art, Godot 4.4.
+**Survival Open World + Shelter**, top-down pixel art, Godot 4.7.2.
 
 | | |
 |---|---|
@@ -13,7 +13,7 @@
 
 1. Baca **§1–§3** GDD (konsep, dua loop, struktur).
 2. Baca **§17.12** — kontrak proyeksi dikunci (wajib sebelum menggambar apa pun).
-3. Buka `game/` di Godot 4.4, tekan F5, dan rasakan berat + siklus malam.
+3. Buka `game/` di Godot 4.7.2, tekan F5, dan rasakan berat + siklus malam.
 
 ## Status
 

@@ -49,7 +49,7 @@ BARIS (semua karakter):
 
 Rumus region di Godot: `Rect2(kolom × 16, baris × 24, 16, 24)` — berlaku untuk semua canvas 16×24 (Tank 24×32 punya sheet sendiri).
 
-## Import Godot 4.4
+## Import Godot 4.7.2
 
 ```
 Filter: OFF · Mipmap: OFF · Compress: Lossless · Fix Alpha Border: ON

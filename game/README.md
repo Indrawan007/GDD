@@ -2,11 +2,25 @@
 
 Prototipe **1 ruangan** untuk memvalidasi kontrak desain sebelum satu pixel seni final digambar.
 
-> **Status:** versi ini sudah melewati **satu putaran tes nyata di Godot 4.4** (lihat bagian *Perbaikan setelah tes pertama*). Error parser yang dilaporkan sudah diperbaiki, dan lint lokal ditambah dua aturan baru supaya kesalahan sejenis tidak terulang.
+> **Status:** versi ini sudah melewati **satu putaran tes nyata di Godot 4.7.2** (lihat bagian *Perbaikan setelah tes pertama*). Error parser yang dilaporkan sudah diperbaiki, dan lint lokal ditambah dua aturan baru supaya kesalahan sejenis tidak terulang.
 >
 > Masih ada kemungkinan error di tempat yang belum tersentuh tes (mis. urutan `_ready` saat pertama kali memuat aset). Laporkan pesan error persisnya — pengerjaan jadi jauh lebih cepat kalau ada nomor baris.
 
-## Perbaikan setelah tes pertama (Godot 4.4)
+## Kompatibilitas Godot 4.7.2
+
+Engine kamu 4.7.2 (rilis 18 Agustus 2026). Proyek ini **awalnya ditulis untuk 4.4**, jadi ada tiga hal yang disesuaikan:
+
+| Perubahan | Alasan |
+|---|---|
+| `config/features` → `("4.7", "GL Compatibility")` | Tanpa ini Godot menampilkan dialog *"project was last edited in 4.4"* dan menawarkan konversi. `config_version` tetap **5** di 4.7.2 (sudah dicek di `core/config/project_settings.h`), jadi tidak ada migrasi format file. |
+| `window/stretch/scale_mode="integer"` **ditambahkan** | 4.7 mengubah default proyek baru ke `canvas_items`+`expand`; kita tetap `viewport`+`keep` secara eksplisit. `integer` mencegah piksel tidak rata saat jendela di-resize ke skala bukan kelipatan 4. |
+| `snap_2d_transforms_to_pixel` + `snap_2d_vertices_to_pixel` **ditambahkan** | **Ini bug nyata, bukan kosmetik.** GDD §17 butir 5 mewajibkan "gerakan sprite di-snap ke piksel", tapi `project.godot` hanya menyetel filter Nearest — snap-nya tidak pernah aktif. Header lama bahkan mengklaim "pixel snap". Greybox jadi melanggar kontrak proyeksinya sendiri. |
+
+Semua nama setting di atas sudah diverifikasi ada di `doc/classes/ProjectSettings.xml` 4.7.2, dan tidak ada satu pun API yang kita pakai masuk daftar *breaking changes* atau *known incompatibilities* 4.7.x.
+
+Kalau Godot tetap menampilkan dialog versi saat membuka: pilih **buka tanpa konversi** (data kita tidak butuh migrasi), atau konversi — hasilnya sama.
+
+## Perbaikan setelah tes pertama (Godot 4.7.2)
 
 Empat error dilaporkan. Akarnya **dua kebiasaan Python yang tidak ada di GDScript**:
 
@@ -26,7 +40,7 @@ Dua aturan baru di `tools/lint_gdscript.py`:
 
 ## Cara menjalankan
 
-1. Godot **4.4** (GL Compatibility), buka folder `game/` → *Import* → pilih `project.godot`.
+1. Godot **4.7.2** (GL Compatibility), buka folder `game/` → *Import* → pilih `project.godot`.
 2. Tekan **F5**. Scene utama: `scenes/main.tscn`.
 
 Tidak ada file `.tscn` untuk pemain/zombie/kontainer — semuanya dibangun di

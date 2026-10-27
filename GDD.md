@@ -1,8 +1,8 @@
 # The End Has Come
 
-## Game Design Document v3.10.1 — Canonical
+## Game Design Document v3.10.2 — Canonical
 
-### Survival Open World · Shelter · Singleplayer · Godot 4.4
+### Survival Open World · Shelter · Singleplayer · Godot 4.7.2
 
 > **Dokumen ini menggantikan v1, v2, v3.0, v3.1, dan v3.2.**
 > Arah resmi: **Survival Open World + Shelter**, bukan roguelite per-floor. Yang masih berlaku dari v3.1: Night Director (event, bukan wave), Battery, angka zombie, angka combat, arsitektur Godot, dan disiplin scope. Yang dipensiunkan: struktur 5 floor, Signal, meta tree antar-run.
@@ -49,6 +49,7 @@
 | 27 | **Prototipe greybox 1 ruangan** ada di repo (`game/`) | §21B, `game/README.md` |
 | 28 | **Jendela: 4 state, bisa dilihat & dilewati lewat state pecah** | §4.2B, `docs/art/window-states-spec.png` |
 | 29 | **Tes pertama di engine:** 4 error parser diperbaiki + lint diperkuat | §21B, `game/README.md` |
+| 30 | **Target engine 4.7.2:** features bump, `scale_mode=integer`, pixel snap yang sebelumnya hilang | §17, §21B, `game/project.godot` |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -77,7 +78,7 @@ Di v3.1 saya menghapus Hunger karena **run cuma 30–40 menit**: meter yang turu
 | **Struktur** | Satu kota persisten, seed, save/continue, hari ke hari |
 | **Multiplayer** | Singleplayer only |
 | **Map** | 1 kota prosedural (384×384 tile) + interior bangunan prosedural dari template |
-| **Engine** | Godot 4.4 (GDScript, Forward+) |
+| **Engine** | Godot 4.7.2 (GDScript, Forward+) |
 | **Art** | Pixel art 16×16, native 320×180 |
 | **Platform** | PC (Steam), keyboard+mouse **dan** gamepad |
 | **Target sesi** | 45–90 menit per duduk (bisa disimpan kapan saja di shelter) |
@@ -1441,7 +1442,7 @@ Aturan pemakaian ada di `docs/art/README.md`. Lembar ini **deterministik**: dibu
 
 ---
 
-## 18. Arsitektur Teknis (Godot 4.4)
+## 18. Arsitektur Teknis (Godot 4.7.2)
 
 ### 18.1 Struktur Proyek
 
@@ -1720,7 +1721,7 @@ EKONOMI
 ### Phase 0 — Fondasi (Minggu 1–2)
 
 ```text
-☐ Godot 4.4, 320×180, nearest, pixel snap
+☐ Godot 4.7.2, 320×180, nearest, integer scale, pixel snap
 ☐ Input map keyboard+mouse & gamepad
 ☐ Tuning file terpusat (semua angka §20 di satu resource)
 ☐ Event Bus, GameManager, WorldClock skeleton
@@ -1852,7 +1853,7 @@ Greybox 1 ruangan sudah ada di `game/` untuk menguji kontrak desain **sebelum** 
 
 **Aturan pemakaian:** angka di `game/scripts/autoload/tuning.gd` mengikuti §20. Yang dipendekkan hanya durasi fase (siang 120 s, malam 30 s) agar bisa dites dalam 2 menit. **Jangan menaikkan angka produksi karena greybox terasa enak** — kalau ada yang perlu diubah, ubah §20 dulu beserta alasannya.
 
-**Batas jujur:** kode greybox ditulis tanpa bisa menjalankan engine di lingkungan ini. Verifikasi otomatis tersedia lewat `tools/lint_gdscript.py` (kurung, indentasi, path aset, nama signal & konstanta, fungsi ganda, `in (A,B)`, dan `:=` dari ekspresi Variant). Putaran tes pertama di Godot 4.4 menemukan 4 error parser — semuanya dari asumsi sintaks Python — dan sudah diperbaiki; rinciannya di `game/README.md` bagian *Perbaikan setelah tes pertama*.
+**Batas jujur:** kode greybox ditulis tanpa bisa menjalankan engine di lingkungan ini. Verifikasi otomatis tersedia lewat `tools/lint_gdscript.py` (kurung, indentasi, path aset, nama signal & konstanta, fungsi ganda, `in (A,B)`, dan `:=` dari ekspresi Variant). Putaran tes pertama di Godot 4.7.2 menemukan 4 error parser — semuanya dari asumsi sintaks Python — dan sudah diperbaiki; rinciannya di `game/README.md` bagian *Perbaikan setelah tes pertama*.
 
 **Pelajaran untuk sisa proyek:** dua pola yang harus dihindari di GDScript — `x in (A, B)` (tidak ada) dan `:=` pada ekspresi yang menyentuh variabel untyped. Keduanya sudah dicegat lint, jadi biayanya sekarang nol.
 
