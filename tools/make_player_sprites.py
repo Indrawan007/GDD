@@ -165,8 +165,8 @@ PRONE = {
         "....AAA.........",   # 19 rambut
         "...AaaaA........",   # 20
         "....AasssAjjjjj.",   # 21 wajah + punggung
-        "...jjjjjjjjjjjpp",   # 22 jaket + pinggul
-        "..jjjjjjjjjjjjpp",   # 23 badan di tanah
+        "...jjjjjjjjjpp..",   # 22 jaket + pinggul
+        "..jjjjjjjjjjpp..",   # 23 badan di tanah
     ],
     "n": [
         "................", "................", "................", "................",
@@ -177,8 +177,8 @@ PRONE = {
         "....AAA.........",
         "...AaaaaA.......",
         "....AaaaAjjjjjj.",
-        "...jjjjjjjjjjjpp",
-        "..NNNNNNNNNNNpp.",
+        "...jjjjjjjjjpp..",
+        "..NNNNNNNNNNpp..",
     ],
 }
 
@@ -188,14 +188,14 @@ TUCK = [
     "................", "................", "................", "................",
     "................", "................", "................", "................",
     "................", "................", "................",
-    ".....AAA........",   # 15 kepala menunduk
-    "....AaaaA.......",
-    "...AjjjjjA......",   # 17 punggung membulat
-    "..jjjjjjjjp.....",
-    "..jjjjjjjjpp....",
-    "..jjjjjjjjppb...",
-    "...wwwwpppb.....",   # 21 kaki terlipat
-    "....bbbb........",
+    "......AAA.......",   # 15 kepala menunduk
+    ".....AaaaA......",
+    "....AjjjjjA.....",   # 17 punggung membulat
+    "...jjjjjjjjp....",
+    "...jjjjjjjjpp...",
+    "...jjjjjjjjppb..",
+    "....wwwwpppb....",   # 21 kaki terlipat
+    ".....bbbb.......",
     "................",
 ]
 
@@ -239,7 +239,7 @@ def leg(mat, x_hip, y_top, dx, lift, w=3, toe=0, inner=1):
             xc = x_hip + dx * (0.35 + 0.65 * t)
         for k in range(w):
             edge_in = (inner > 0 and k == w - 1) or (inner < 0 and k == 0)
-            put(mat, int(round(xc)) + k, y, "P" if edge_in else "p")
+            put(mat, min(max(int(round(xc)) + k, 1), 14), y, "P" if edge_in else "p")
 
     bx = int(round(x_hip + dx))
     for y in range(ankle_y, foot_y + 1):
@@ -247,14 +247,15 @@ def leg(mat, x_hip, y_top, dx, lift, w=3, toe=0, inner=1):
         for k in range(w - 1):
             put(mat, bx - 1 + k, y, ch)
         if toe:
-            put(mat, bx - 1 + (w - 1) if toe > 0 else bx - 2, y, ch)
+            tx = bx - 1 + (w - 1) if toe > 0 else bx - 2
+            put(mat, min(max(tx, 1), 14), y, ch)
 
 
 def arm(mat, shoulder, dx, dy, ext=0, w=2, length=6, back=False, inner=1, tone="j"):
     """Lengan 2 px: lengan jaket + tangan 1 px. inner = sisi menghadap badan."""
     sx, sy = shoulder
-    hx = sx + dx + ext
-    hy = sy + dy + length
+    hx = min(max(sx + dx + ext, 2), 12)      # jangan keluar kanvas: outline butuh 1 px
+    hy = min(max(sy + dy + length, 6), 20)
     for y in range(sy, hy):
         t = (y - sy) / max(1, hy - sy)
         xc = int(round(sx + (hx - sx) * t))
@@ -392,11 +393,11 @@ def pose_for(anim, f):
 # ------------------------------------------------------------------ arah ----
 
 def shoulders(d):
-    return {"s": ((3, 8), (12, 8)),
-            "se": ((3, 8), (12, 8)),
-            "e": ((5, 8), (5, 8)),
-            "ne": ((3, 8), (12, 8)),
-            "n": ((2, 8), (13, 8))}[d]
+    return {"s": ((3, 9), (11, 9)),
+            "se": ((3, 9), (11, 9)),
+            "e": ((9, 9), (9, 9)),
+            "ne": ((3, 9), (11, 9)),
+            "n": ((2, 9), (12, 9))}[d]
 
 
 def hips(d):
@@ -416,8 +417,8 @@ def build(d, anim, f):
         stamp(mat, TUCK, 0)
         return render(shade(mat))
 
-    yb = 1 + p["bob"] + p["crouch"]
-    lt = 15 + p["crouch"]
+    yb = 2 + p["bob"] + p["crouch"]
+    lt = 16 + p["crouch"]
 
     hx_l, hx_r = hips(d)
 
@@ -430,18 +431,18 @@ def build(d, anim, f):
 
     sh_l, sh_r = shoulders(d)
     if d in ("e", "ne", "n"):
-        arm(mat, (sh_l[0], sh_l[1] + yb - 1), p["armL"][0], p["armL"][1], back=True, inner=1)
+        arm(mat, (sh_l[0], sh_l[1] + yb - 2), p["armL"][0], p["armL"][1], back=True, inner=1)
 
     stamp(mat, BASE[d], yb)
 
     if d == "e":
-        arm(mat, (9, 8 + yb - 1), p["armR"][0], p["armR"][1], ext=p["ext"], inner=1)
+        arm(mat, (9, 9 + yb - 2), p["armR"][0], p["armR"][1], ext=p["ext"], inner=1)
     elif d == "n":
-        arm(mat, (2, 8 + yb - 1), p["armL"][0], p["armL"][1], inner=-1)
-        arm(mat, (12, 8 + yb - 1), p["armR"][0], p["armR"][1], ext=p["ext"], inner=1)
+        arm(mat, (2, 9 + yb - 2), p["armL"][0], p["armL"][1], inner=-1)
+        arm(mat, (12, 9 + yb - 2), p["armR"][0], p["armR"][1], ext=p["ext"], inner=1)
     else:
-        arm(mat, (3, 8 + yb - 1), p["armL"][0], p["armL"][1], inner=-1)
-        arm(mat, (11, 8 + yb - 1), p["armR"][0], p["armR"][1], ext=p["ext"], inner=1)
+        arm(mat, (3, 9 + yb - 2), p["armL"][0], p["armL"][1], inner=-1)
+        arm(mat, (11, 9 + yb - 2), p["armR"][0], p["armR"][1], ext=p["ext"], inner=1)
 
     return render(shade(mat))
 
@@ -471,6 +472,35 @@ def build_atlas():
     return atlas
 
 
+def validate(atlas):
+    """Checklist §17.12/§17.3 yang bisa diperiksa mesin, bukan selera."""
+    cells = sum(a[1] for a in ANIMS) * len(DIRS5)
+    col = 0
+    bad_edges, bad_top, empty = [], [], []
+    for (name, count, fps) in ANIMS:
+        for r, d in enumerate(DIRS5):
+            for i in range(count):
+                cell = atlas.crop(((col + i) * W, r * H, (col + i) * W + W, r * H + H))
+                px = cell.load()
+                filled = [(x, y) for y in range(H) for x in range(W) if px[x, y][3] > 0]
+                if not filled:
+                    empty.append(f"{name}/{d}/{i}")
+                content = [(x, y) for (x, y) in filled if px[x, y][:3] != OUTLINE[:3]]
+                if any(x in (0, W - 1) for x, _ in content):
+                    bad_edges.append(f"{name}/{d}/{i}")
+                if any(y == 0 for _, y in content):
+                    bad_top.append(f"{name}/{d}/{i}")
+        col += count
+
+    print(f"  sel diperiksa      : {cells}")
+    print(f"  sel kosong         : {len(empty)}")
+    print(f"  isi menyentuh tepi : {len(bad_edges)}")
+    print(f"  isi di baris 0     : {len(bad_top)}")
+    ok = not (empty or bad_edges or bad_top)
+    print(f"  HASIL              : {'LULUS' if ok else 'GAGAL'}")
+    return ok
+
+
 def main():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     atlas = build_atlas()
@@ -478,6 +508,7 @@ def main():
     os.makedirs(os.path.dirname(out), exist_ok=True)
     atlas.save(out)
     print(f"atlas {atlas.width}x{atlas.height} -> {out}")
+    validate(atlas)
 
     # zoom inspeksi: idle + walk S dan E
     zoom = Image.new("RGBA", (8 * 16 * 4 + 40, 24 * 16 + 20), (26, 28, 32, 255))

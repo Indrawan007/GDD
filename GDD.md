@@ -1241,15 +1241,21 @@ Pemain sudah punya set lengkap: **150 frame digambar** (30 × 5 arah), atlas `48
 | Simetri | **wajib** — tidak ada tas selempang / tambalan satu sisi | Detail asimetris membatalkan baris mirror, biaya naik ±60% (§17.3). |
 | Palet | **26 warna**, 3 langkah per material | Batas §17.1: 32 global; tanpa anti-aliasing, tanpa gradien halus. |
 
-**Hasil uji keterbacaan (dicek di zoom 20×, bukan selera):**
+**Hasil uji keterbacaan.** Dua bagian: yang bisa diperiksa mesin (dijalankan otomatis setiap generate) dan yang harus dinilai mata.
 
 ```text
-□ Siluet terbaca tanpa warna (teal jadi abu-abu)?        → YA, bahu vs pinggang berbeda
-□ Mata terbaca terpisah di wajah 6 px?                  → YA (2 px jarak)
-□ Arah hadap terbaca dari siluet saja (E vs N)?         → YA (hidung + tas di punggung)
-□ Dua kaki terpisah, tidak jadi satu balok?             → YA (celah 1 px + selout)
-□ Tas terbaca sebagai tas, bukan bongkahan?             → YA di N/NE/E; hanya tali di S/SE
-□ Ada piksel yang menyentuh tepi sel (memotong siluet)? → TIDAK
+Otomatis (tools/make_player_sprites.py -> validate()):
+  sel diperiksa      : 150
+  sel kosong         : 0
+  isi menyentuh tepi : 0        (outline boleh, isi tidak)
+  isi di baris 0     : 0        (ruang untuk topi/aksesori kepala)
+
+Manual (zoom 12x-20x):
+  Siluet terbaca tanpa warna (teal -> abu-abu)?   -> YA, bahu vs pinggang berbeda
+  Mata terbaca terpisah di wajah 6 px?           -> YA (2 px jarak antar mata)
+  Arah hadap terbaca dari siluet saja?           -> YA (hidung di E, tas di N)
+  Dua kaki terpisah, tidak jadi satu balok?      -> YA (celah 1 px + selout)
+  Tas terbaca sebagai tas, bukan bongkahan?      -> YA di N/NE/E; hanya tali di S/SE
 ```
 
 **Yang belum ada di v1 — jangan dianggap selesai:**

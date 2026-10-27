@@ -38,6 +38,17 @@ Dua aturan baru di `tools/lint_gdscript.py`:
 1. `in (A, B)` → error (bukan GDScript).
 2. `:=` yang menyentuh variabel untyped → error "tidak bisa menginfer tipe Variant".
 
+## Set sprite pemain (v1, final pass pertama)
+
+Greybox sekarang memakai atlas pemain sungguhan, bukan placeholder: `game/assets/sprites/player.png` (480×120, 30 kolom × 5 baris), dibaca oleh `SpriteFactory.player_frames()`.
+
+- 150 frame digambar; 3 arah sisanya (`SW`, `W`, `NW`) dibuat lewat `flip_h`
+- Regenerasi: `python3 tools/make_player_sprites.py` (sekaligus menjalankan validasi 150 sel)
+- Lembar review: `docs/art/player-character-sheet.png` dan `docs/art/player-sheet-final.png`
+- Walk cycle: `docs/art/player-walk-preview.gif`
+
+Zombie masih memakai placeholder `assets/generated/walker.png` — itu disengaja, karena set zombie baru masuk setelah gaya pemain dikunci.
+
 ## Cara menjalankan
 
 1. Godot **4.7.2** (GL Compatibility), buka folder `game/` → *Import* → pilih `project.godot`.
