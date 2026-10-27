@@ -17,6 +17,7 @@ Lembar kerja sprite & tileset sesuai spesifikasi §17 GDD (v3.8) — **proyeksi 
 | **`player-character-sheet.png`** | **SET FINAL v1**: turnaround 5 arah, palet 26 warna, catatan produksi | Acuan gaya untuk semua karakter lain |
 | **`player-sheet-final.png`** | **SET FINAL v1**: 150 frame berlabel, 6× zoom | Review animasi per frame |
 | **`player-walk-preview.gif`** | Walk cycle 5 arah, 8× zoom | Cek ritme jalan |
+| **`ingame-scale-check.png`** | Karakter di layar 320×180 (4×): shadow 32×14 vs 14×7 | Bukti koreksi shadow §17.12 |
 | **`game/assets/sprites/player.png`** | Atlas final 480×120 (30 kolom × 5 baris), dipakai engine | File yang dibaca `SpriteFactory` |
 
 ## Set final v1 — sudah ada, bukan template lagi
@@ -31,6 +32,8 @@ Pemain sudah punya set lengkap: **150 frame digambar** (30 frame × 5 arah), dig
 | Pemisah bagian | **selout** 1 px (nada gelap di tepi dalam) | Tanpa ini lengan menyatu dengan badan jadi satu balok. |
 | Simetri | wajib | Detail asimetris membatalkan baris mirror (§17.3). |
 | Palet | 26 warna, 3 langkah per material | Batas §17.1: 32 global, tanpa anti-aliasing. |
+| **Proporsi** | kaki **10 px (42%)**, kepala **5 px** = 1:4,8 kepala | Diukur dari foto model: 7,4 kepala, kaki 41,5%. Kepala dipaksa 5 px karena 3 px mustahil diberi wajah; seluruh selisih diserap kepala, bukan kaki. |
+| **Shadow** | ellipse **14×7**, offset **(0,−1)**, alpha 45% | 32×14 (nilai lama) = selebar 2× karakter dan terbaca sebagai genangan. Bukti: `ingame-scale-check.png`. |
 
 **Yang belum ada di set v1 (jujur):** transisi death/dodge masih pose tunggal (belum di-keyframe tangan per frame), belum ada varian hurt per arah senjata, belum ada palette swap oranye/abu (tinggal ganti huruf `j/J/k`).
 

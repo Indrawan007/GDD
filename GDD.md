@@ -1,6 +1,6 @@
 # The End Has Come
 
-## Game Design Document v3.11 — Canonical
+## Game Design Document v3.12 — Canonical
 
 ### Survival Open World · Shelter · Singleplayer · Godot 4.7.2
 
@@ -51,6 +51,7 @@
 | 29 | **Tes pertama di engine:** 4 error parser diperbaiki + lint diperkuat | §21B, `game/README.md` |
 | 30 | **Target engine 4.7.2:** features bump, `scale_mode=integer`, pixel snap yang sebelumnya hilang | §17, §21B, `game/project.godot` |
 | 31 | **Set sprite pemain v1: 150 frame digambar, atlas 480×120, dipakai engine** | §17.3B, `docs/art/player-character-sheet.png` |
+| 32 | **Sprite pemain v2: proporsi diukur dari foto (kaki 42%, 1:4,8 kepala) + koreksi shadow 32×14 → 14×7** | §17.3B, §17.12, `docs/art/ingame-scale-check.png` |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -1241,6 +1242,25 @@ Pemain sudah punya set lengkap: **150 frame digambar** (30 × 5 arah), atlas `48
 | Simetri | **wajib** — tidak ada tas selempang / tambalan satu sisi | Detail asimetris membatalkan baris mirror, biaya naik ±60% (§17.3). |
 | Palet | **26 warna**, 3 langkah per material | Batas §17.1: 32 global; tanpa anti-aliasing, tanpa gradien halus. |
 
+### Proporsi — diukur dari referensi, bukan selera
+
+Permintaan "semirip manusia" tidak bisa dijawab dengan perasaan, jadi diukur dari foto model berdiri penuh (`image-search/...reference-3.jpg`, diukur otomatis lewat ambang kontras):
+
+| Ukuran | Foto (px) | Rasio | Kanvas 24 px | Sprite |
+|---|---|---|---|---|
+| Tinggi total | 1063 | 1,00 | 24 | 24 |
+| Tinggi kepala | ~144 | 13,5% | 3,2 | **5** (20,8%) |
+| Bahu | 240 | 22,6% | 5,4 | 10–11 |
+| Lebar kepala | 96 | 9,0% | 2,2 | 6 |
+| **Bahu : kepala** | | **2,5** | | **1,7–1,8** |
+| Leher | 50 | 4,7% | 1,1 | 1 |
+| Badan (leher–crotch) | 428 | 40,3% | 9,7 | 7 |
+| Kaki (crotch–telapak) | 441 | **41,5%** | 10,0 | **10** |
+
+**Kepala 3 px tidak mungkin** — tidak ada ruang untuk dua mata. Jadi satu-satunya penyimpangan yang boleh adalah kepala: **5 px**, yang menyerap seluruh selisih (20,8% vs 13,5%). Konsekuensinya **kaki tetap 10 px = 41,7%**, praktis sama dengan manusia asli.
+
+Versi sebelumnya (v1) memakai kepala 6 + kaki 8 = **1:3,8 kepala** — itu proporsi chibi, dan itulah sebabnya sprite terlihat "kurang manusia" meski shadingnya benar. v2 = **1:4,8** dengan kaki 42%.
+
 **Hasil uji keterbacaan.** Dua bagian: yang bisa diperiksa mesin (dijalankan otomatis setiap generate) dan yang harus dinilai mata.
 
 ```text
@@ -1446,10 +1466,12 @@ Keputusan D22 dikunci di sini sebagai **angka**, bukan sebagai selera. Lembar vi
 | Muka dinding eksterior | **10 px** (6 px atas + 10 px muka) | Memberi rasa tinggi tanpa proyeksi diagonal |
 | Muka dinding rendah / pagar | **6 px** | Bisa dilewati peluru, tetap terbaca punya volume |
 | Atap | **alpha 0,25–0,35** saat pemain di dalam footprint | Tidak pernah menutupi pemain (larangan oklusi) |
-| Shadow karakter | **ellipse 32×14, offset (0, −2), alpha 45%** | Karakter tidak terlihat mengambang |
+| Shadow karakter | **ellipse 14×7, offset (0, −1), alpha 45%** — *dikoreksi dari 32×14, lihat catatan* | Karakter tidak terlihat mengambang |
 | Y-sort key | **titik kaki (pivot 8,23)** — bukan tengah sprite | Urutan gambar benar saat pemain di belakang meja |
 | Perspective scaling | **TIDAK ADA.** Objek di "atas" layar tidak mengecil | Menjaga keterbacaan & ukuran sprite konsisten |
 | Arah sprite | 8 arah, 5 baris digambar + 3 mirror (§17.3) | Konsisten dengan gerak 8 arah |
+
+> **Koreksi shadow (v3.12).** Nilai lama 32×14 berasal dari perkiraan, bukan pengukuran. Diuji pada skala asli 320×180: ellipse 32 px = selebar **2× karakter**, dan dengan alpha 45% ia terbaca sebagai genangan air, bukan kontak kaki. Dibandingkan langsung di `docs/art/ingame-scale-check.png`. Lebar karakter 14 px (bahu) → shadow **14×7** (setengah tinggi untuk perspektif), offset **−1 px** karena telapak kaki di (8,23) dan baseline sel 24. Ini satu-satunya perubahan pada §17.12 yang dikunci; kalau tidak disetujui, kembalikan ke 32×14 dan konsekuensinya adalah genangan gelap di bawah setiap karakter.
 
 **Tes penerimaan aset (dipakai saat review seni, bukan selera):**
 
