@@ -1,6 +1,6 @@
 # The End Has Come
 
-## Game Design Document v3.6 — Canonical
+## Game Design Document v3.7 — Canonical
 
 ### Survival Open World · Shelter · Singleplayer · Godot 4.4
 
@@ -44,6 +44,7 @@
 | 22 | **NPC rasa disimpan untuk pasca-1.0** (Q11) | §17.5, §17.9 |
 | 23 | **Template sprite & tileset siap pakai** di `docs/art/` | §17.10 |
 | 24 | **8 arah sprite** (bukan 4), digambar 5 baris + 3 mirror | §17.1, §17.3, §17.4, §17.8 |
+| 25 | **Proyeksi: Top-Down 3/4 dengan tinggi, bukan isometrik** | §17.11 (baru) |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -205,6 +206,7 @@ Aturan spacing: distrik aman (Suburban) selalu bersebelahan dengan spawn; distri
 - Lantai: **maksimal 2 lantai**, naik lewat tangga. Lantai 2 memberi vantage point + loot lebih baik + jalur keluar.
 - Pintu & jendela adalah objek state: terbuka/tertutup/dibarricade/dirusak. Ini yang membuat shelter dan looting terasa fisik.
 - **Tidak ada loading screen** saat masuk bangunan — interior adalah bagian dari tilemap yang sama.
+- **Dinding punya muka setinggi 8–12 px** (wall face tile) + drop shadow di bawah karakter/prop, supaya bangunan terlihat punya tinggi tanpa memakai proyeksi isometrik (§17.11).
 
 ### 4.4 Streaming & Simulasi
 
@@ -1313,6 +1315,57 @@ Art adalah **jalur kritis** proyek ini, bukan coding. Konsekuensi yang harus dit
 
 **Opsi sumber seni:** **1 pixel artist kontrak 5–6 bulan** (diputuskan, Q10). Tileset komersial boleh dipakai untuk ground/wall bila perlu, **karakter wajib custom** — gaya campur pada karakter langsung terasa murah. NPC rasa (Q11) **disimpan untuk pengembangan pasca-1.0**, bukan dipotong permanen.
 
+### 17.11 Proyeksi: Kenapa Top-Down, Bukan Isometrik (keputusan v3.7)
+
+Pertanyaan ini wajar muncul: isometrik terlihat lebih "mahal" dan lebih cocok untuk game yang menjual *rumah yang kamu bangun*. Tapi untuk game **ini**, dengan resolusi dan kapasitas yang sudah dikunci, isometrik kalah di tiga hal yang tidak bisa ditawar.
+
+**Perbandingan langsung:**
+
+| Aspek | Top-Down (sekarang) | Isometrik 2:1 | Selisih |
+|-------|---------------------|---------------|---------|
+| Tile | 16×16 persegi | 32×16 belah ketupat | — |
+| **Area yang terlihat di 320×180** | **±220 tile** (20×11) | **±110–130 tile** | **isometrik ± separuh** |
+| Collision & pathfinding | AABB persegi, langsung | matematika diagonal, navmesh per belah ketupat | +3–4 minggu sistem |
+| Okclusion dinding | atap di-fade per bangunan | shader transparan per occluder, terus-menerus | +4–6 minggu + bug visual |
+| 8 arah sprite | 5 baris digambar + 3 mirror | 5 baris, tapi tiap pose lebih mahal (±13–18 jam vs 8) | +25–35% waktu sprite |
+| Tileset per distrik | ±263 tile | ±500–650 tile (belah ketupat + sisi dinding 2 arah) | **±2× waktu tileset** |
+| Audio/visual readability | jarak & arah jelas | diagonal lebih sulit dibaca di layar kecil | risiko desain |
+| Waktu seni total (8 distrik) | ±35 minggu | **±55–70 minggu** | +20–35 minggu |
+
+**Tiga alasan yang menentukan:**
+
+1. **Area pandang jadi separuh.** Di 320×180, tile isometrik 32×16 hanya memberi ±10 kolom belah ketupat. GDD ini sudah menulis bahwa 20×11 tile itu sempit — 18 zombie sudah "banjir" (§5.4). Dengan isometrik, jumlah zombie harus diturunkan lagi **atau** resolusi dinaikkan (yang menaikkan biaya seni lagi). Untuk game yang intinya *melihat kerumunan datang*, memotong separuh pandangan adalah kemunduran.
+2. **Okclusion membunuh keterbacaan.** Di isometrik, dinding dan atap **selalu** menutupi sesuatu. Solusi standarnya adalah shader transparan per occluder — dan itu sumber bug klasik: karakter hilang di balik sudut, barricade tidak terlihat, zombie datang dari balik dinding tanpa terlihat. Pilar 5 kita ("bahaya terbaca, tidak ada kematian dari off-screen") langsung bertabrakan dengan ini.
+3. **Satu artist, 35 minggu vs 55–70 minggu.** Isometrik bukan pilihan gaya, itu pilihan anggaran. Dengan 1 artist (Q10) dan EA di minggu 28, isometrik berarti EA bergeser 5–7 bulan.
+
+**Yang dipakai sebagai gantinya: Top-Down "3/4 dengan tinggi" (bukan isometrik):**
+
+Kedalaman visual tetap didapat, tanpa membayar harga isometrik:
+
+| Teknik | Efek yang didapat | Biaya |
+|--------|-------------------|-------|
+| **Wall face tile** (dinding punya muka 8–12px) | Bangunan terlihat punya tinggi, bukan garis | 1 varian tile per material |
+| **Roof fade** saat pemain masuk | Kamu "masuk rumah", bukan "masuk kotak" | sudah ada (§17.2) |
+| **Drop shadow** di bawah karakter & prop | Karakter tidak terlihat mengambang | 1 sprite blur per ukuran |
+| **Prop tinggi** (lemari, rak, pagar) digambar dengan muka | Interior terasa beruang | masuk atlas prop |
+| **Lighting bertingkat** + prop gelap | Malam terasa punya volume | sudah ada (Battery/Light2D) |
+| **Lantai 2 lewat tangga** (pindah layer, bukan kamera isometrik) | Verticality untuk vantage point & loot | sudah ada (§4.3) |
+
+Ini pendekatan yang dipakai Nuclear Throne, Hotline Miami, Darkwood, dan Project Zomboid — semuanya terasa punya tempat, tanpa satu baris matematika diagonal.
+
+**Kalau tetap ingin isometrik**, ini yang harus diubah lebih dulu (jangan mulai seni sebelum semuanya beres):
+
+```text
+1. Resolusi naik ke 480×270 (agar area pandang tidak separuh) → semua template aset dibuat ulang
+2. Tile jadi 32×16 + aturan collider baru → map generator, BSP, autotile, streaming ditulis ulang
+3. Navmesh per belah ketupat → uji ulang AI 8 tipe zombie, termasuk Tank 24×32 → 32×40
+4. Occlusion system (shader + sorting) → tambah 4–6 minggu dan satu kelas bug baru
+5. Jadwal: EA minggu 28 → minggu 40–46. 1 artist → 2 artist.
+6. Uji dulu: greybox isometrik 1 hari + 1 hari top-down, 5 tester, pilih yang lebih terbaca. JANGAN memutuskan dari screenshot.
+```
+
+**Keputusan: tetap Top-Down dengan penambahan tinggi (3/4 look).** Isometrik tidak dipakai untuk game ini, dan alasannya dicatat di sini supaya tidak dibuka ulang tanpa data baru.
+
 ### 17.10 Template Aset Siap Pakai
 
 Lembar kerja sudah dibuat dan ikut di repo:
@@ -1807,6 +1860,7 @@ Per run:   hari bertahan, penyebab mati, jarak dari shelter saat mati, corpse ba
 | D19 | Spesifikasi aset | **Tileset 16×16 per distrik (±263 tile), karakter 16×24, 8 arah (5 digambar + 3 mirror)** | §17. Tambahan ±3 minggu seni untuk 8 arah (§17.8) |
 | D20 | NPC | **Trader saja (2 lokasi, statis)**. NPC rasa ditunda ke pasca-1.0 | Tanpa companion AI. NPC bergerak = +4–6 minggu (§17.5) |
 | D21 | Sumber seni | **1 artist kontrak 5–6 bulan** (Q10) | Karakter wajib custom; tileset komersial boleh untuk ground/wall (§17.9) |
+| D22 | Proyeksi kamera | **Top-Down 3/4 dengan tinggi** (wall face, roof fade, shadow) | Isometrik ditolak: area pandang separuh, okclusion, +20–35 minggu (§17.11) |
 
 ### 24.2 Masih terbuka (jawab sebelum Phase 1 selesai)
 
