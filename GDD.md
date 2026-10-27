@@ -1,6 +1,6 @@
 # The End Has Come
 
-## Game Design Document v3.9 — Canonical
+## Game Design Document v3.10 — Canonical
 
 ### Survival Open World · Shelter · Singleplayer · Godot 4.4
 
@@ -47,6 +47,7 @@
 | 25 | **Proyeksi: Top-Down 3/4 dengan tinggi, bukan isometrik** | §17.11 |
 | 26 | **Kontrak proyeksi dikunci sebagai angka** + tes penerimaan aset | §17.12, `docs/art/projection-3q-spec.png` |
 | 27 | **Prototipe greybox 1 ruangan** ada di repo (`game/`) | §21B, `game/README.md` |
+| 28 | **Jendela: 4 state, bisa dilihat & dilewati lewat state pecah** | §4.2B, `docs/art/window-states-spec.png` |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -201,12 +202,35 @@ Game ini punya dua loop yang saling mengisi. Kalau salah satunya lemah, game-nya
 
 Aturan spacing: distrik aman (Suburban) selalu bersebelahan dengan spawn; distrik berbahaya minimal 2 distrik jauhnya. Pemain harus **melewati** distrik berbahaya untuk mencapai loot terbaik — itu satu-satunya alasan open world ini ada.
 
+### 4.2B Jendela: Melihat, Masuk, dan Ditembus (top-down 3/4)
+
+Di 3/4, jendela **tidak** menghadap kamera seperti di isometrik — ia **dipotong dari dinding**. Justru itu yang membuatnya bekerja: setiap tile dinding punya muka 10 px (§17.12), dan jendela menggantikan bagian muka itu dengan kaca, lubang, papan, atau barikade. Jadi tidak perlu sprite jendela menghadap 4 arah; satu tile, empat state.
+
+**Yang bisa dan tidak bisa (dikunci):**
+
+| State | Melihat ke dalam | Dilewati pemain | Dilewati zombie | Tembus peluru | HP |
+|-------|------------------|-----------------|-----------------|---------------|-----|
+| **Utuh** | **YA** (tembus pandang) | Tidak | Tidak | Kaca pecah dulu | 20 |
+| **Pecah** | YA | **YA** — vault 0,45 s | YA — panjat 1,2 s | **YA** | — |
+| **Papan** | **TIDAK** | Tidak | Tidak | Tidak | 60 |
+| **Barikade** | TIDAK | Tidak | Tidak | Tidak | 120 (→ papan saat rusak) |
+
+**Tiga aturan yang mengikat sistem lain:**
+
+1. **Visibilitas memakai layer `vision blocker` (layer 5) yang terpisah dari collision.** Kaca utuh **tidak** memblokir pandangan; papan & barikade memblokir. Tanpa pemisahan ini, fog of war dan LOS akan salah di semua bangunan — dan "melihat lewat jendela" jadi tidak mungkin.
+2. **Jendela adalah `Node2D`, bukan tile.** Alasannya: ia harus bisa jadi titik `NavigationLink2D` untuk zombie di masa depan, punya HP, dan menyimpan state di diff chunk (§4.4). Kalau dijadikan tile, semua itu harus diakali.
+3. **Vault pemain ditolak saat berat "Kelebihan"** (§8.5). Konsisten dengan larangan sprint & dodge: kalau kamu serakah, jendela bukan jalan keluar. Pesannya muncul di HUD: *"Kelebihan muatan — buang tas dulu (G)"*.
+
+**Untuk zombie (Navmesh):** jangan rebake navigation tiap kali jendela pecah — terlalu mahal. Pakai **`NavigationLink2D` per jendela** yang di-`enabled` saat state = PECAH. Rencana ini masuk Phase 3 (§21) dan **belum** ada di greybox (greybox memakai steering + raycast sederhana).
+
+**Konsekuensi desain yang bagus:** jendela jadi alat tawar-menawar malam hari. Memapan semua jendela = aman tapi buta; membiarkan satu pecah = bisa melihat & kabur, tapi walker bisa memanjat lewat situ. Itu keputusan yang lebih menarik daripada pintu yang cuma bisa dibuka/ditutup.
+
 ### 4.3 Bangunan & Interior
 
 - Eksterior: dari tileset per distrik, disusun prosedural per blok (grid 3×3 blok per distrik, tiap blok 3–6 bangunan).
 - Interior: **template** per archetype (rumah kecil, rumah 2 lantai, toko, gudang, kantor, apartemen, klinik). Masing-masing 5–9 varian layout + 3 tingkat kekacauan (rapi, rusak, terbakar).
 - Lantai: **maksimal 2 lantai**, naik lewat tangga. Lantai 2 memberi vantage point + loot lebih baik + jalur keluar.
-- Pintu & jendela adalah objek state: terbuka/tertutup/dibarricade/dirusak. Ini yang membuat shelter dan looting terasa fisik.
+- Pintu & jendela adalah objek state: terbuka/tertutup/dibarricade/dirusak. Ini yang membuat shelter dan looting terasa fisik. Detail jendela (lihat/masuk/tembus) di §4.2B.
 - **Tidak ada loading screen** saat masuk bangunan — interior adalah bagian dari tilemap yang sama.
 - **Dinding punya muka 10 px** (wall face tile) + drop shadow di bawah karakter/prop, supaya bangunan terlihat punya tinggi tanpa proyeksi isometrik. Angka pastinya di §17.12.
 
@@ -1120,7 +1144,7 @@ Aturan: pemain harus bisa mengenali **"pintu mana yang sedang dipukul"** dari su
 | **Low wall / rail** | **6** | Muka 6 px, bisa dilewati peluru (pagar, tembok rendah, tiang) |
 | Roof | 15 | Hanya 1 sisi terlihat (top-down miring), di-fade saat pemain masuk bangunan |
 | Pintu | 12 | 3 material × 4 state (tertutup, terbuka, dibarricade, rusak) |
-| Jendela | 8 | 2 material × 4 state (utuh, pecah, dibarricade, papan) |
+| Jendela | 8 | 2 material × 4 state; dipotong dari wall face, **bukan** sprite menghadap 4 arah (§4.2B) |
 | Tangga | 4 | Naik/turun, 2 orientasi |
 | Dekorasi lantai | 20 | Karpet, retakan, darah kering, sampah |
 | **Subtotal** | **±285** | Muat di 1 atlas 1024 tile dengan sisa untuk ekspansi |
@@ -1671,6 +1695,8 @@ NIGHT RAID (§7.5)
 ASET (§17)
   PROYEKSI: Top-Down 3/4 DIKUNCI (§17.12) — tanpa rotasi kamera, tanpa perspective scaling
   Tile 16×16 · wall face 10 px · roof fade 0,25–0,35 · shadow 32×14 alpha 45%
+  Jendela 4 state: utuh (lihat, tidak masuk) · pecah (lihat, masuk 0,45s) ·
+    papan (tidak lihat, HP 60) · barikade (tidak lihat, HP 120) · layer vision blocker terpisah
   Karakter 16×24 (pivot 8,23) · collision pemain 10×10
   Arah: 8 (digambar 5 baris, mirror: SE→SW · E→W · NE→NW)
   Player 240 frame di atlas / 150 digambar

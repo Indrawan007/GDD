@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 import os
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "game", "assets", "generated")
@@ -241,6 +241,107 @@ def make_walker_sheet() -> Image.Image:
     return img
 
 
+
+# --------------------------------------------------------------------------
+# Jendela — 4 state (§4.7). Ukuran 16×16, sejajar dengan wall face 10 px.
+# --------------------------------------------------------------------------
+WIN_FRAME = (58, 50, 44)
+WIN_GLASS = (86, 122, 140)
+WIN_GLASS_HI = (140, 176, 192)
+WIN_DARK = (26, 26, 30)
+WIN_PLANK = (120, 92, 58)
+WIN_METAL = (104, 108, 116)
+
+
+def make_window(state: str) -> Image.Image:
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+
+    # kusen: atas 3 px (permukaan) + muka 10 px, sama seperti dinding
+    d.rectangle([0, 0, 15, 5], fill=WALL_TOP)
+    d.rectangle([1, 6, 14, 15], fill=WIN_FRAME)
+
+    if state == "intact":
+        d.rectangle([3, 7, 12, 14], fill=WIN_GLASS)
+        d.line([4, 8, 7, 8], fill=WIN_GLASS_HI)
+        d.line([8, 9, 10, 9], fill=WIN_GLASS_HI)
+        d.line([3, 11, 12, 11], fill=WIN_FRAME)      # palang tengah
+        d.line([8, 7, 8, 14], fill=WIN_FRAME)
+    elif state == "broken":
+        d.rectangle([3, 7, 12, 14], fill=WIN_DARK)   # lubang: bisa dilewati
+        d.point([(3, 7), (4, 8), (11, 14), (12, 13), (3, 14), (12, 7)], fill=WIN_GLASS_HI)
+        d.line([3, 7, 4, 9], fill=WIN_GLASS_HI)
+    elif state == "boarded":
+        d.rectangle([3, 7, 12, 14], fill=WIN_DARK)
+        for y in (8, 11, 14):
+            d.line([2, y, 13, y], fill=WIN_PLANK)
+            d.line([2, y + 1, 13, y + 1], fill=(92, 70, 44))
+    else:  # barricade
+        d.rectangle([2, 7, 13, 15], fill=WIN_METAL)
+        for y in (8, 11, 14):
+            d.line([2, y, 13, y], fill=(140, 146, 154))
+        d.line([3, 7, 3, 15], fill=(70, 74, 80))
+        d.line([12, 7, 12, 15], fill=(70, 74, 80))
+
+    d.line([0, 15, 15, 15], fill=WALL_EDGE)
+    return img
+
+
+# --------------------------------------------------------------------------
+# Lembar spesifikasi 4 state jendela
+# --------------------------------------------------------------------------
+def make_window_spec(path: str) -> None:
+    scale = 9
+    states = [
+        ("UTUH", "intact", "Lihat: YA (tembus pandang)", "Masuk: TIDAK", "Proyektil: kaca pecah", "HP 20"),
+        ("PECAH", "broken", "Lihat: YA", "Masuk: YA (vault 0,45 s)", "Proyektil: lewat", "Zombie: memanjat 1,2 s"),
+        ("PAPAN", "boarded", "Lihat: TIDAK", "Masuk: TIDAK", "Proyektil: blokir", "HP 60 · murah"),
+        ("BARIKADE", "barricade", "Lihat: TIDAK", "Masuk: TIDAK", "Proyektil: blokir", "HP 120 · bisa dibongkar"),
+    ]
+
+    W, H = 1180, 560
+    img = Image.new("RGB", (W, H), (30, 30, 30))
+    d = ImageDraw.Draw(img)
+    f_t = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", 28)
+    f = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 15)
+    f_b = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", 18)
+
+    d.text((40, 30), "JENDELA — 4 STATE (Top-Down 3/4)", font=f_t, fill=(236, 236, 236))
+    d.text((40, 68), "Jendela dipotong dari dinding: kusen 3 px atas + muka 10 px, sama dengan wall face.",
+           font=f, fill=(150, 150, 150))
+    d.text((40, 90), "Lubang tengah = tempat pandangan & tubuh melewati dinding.", font=f, fill=(232, 176, 75))
+
+    x0 = 40
+    for i, (label, state, see, enter, proj, hp) in enumerate(states):
+        x = x0 + i * 280
+        y = 150
+        d.text((x, y), label, font=f_b, fill=(236, 236, 236))
+        tile = make_window(state)
+        big = tile.resize((16 * scale, 16 * scale), Image.NEAREST)
+        back = Image.new("RGBA", big.size, (18, 18, 20, 255))
+        back.alpha_composite(big)
+        img.paste(back.convert("RGB"), (x, y + 24))
+        ly = y + 24 + 16 * scale + 12
+        for line, col in [(see, (150, 210, 160)), (enter, (150, 210, 160)),
+                          (proj, (210, 200, 150)), (hp, (200, 200, 200))]:
+            d.text((x, ly), line, font=f, fill=col)
+            ly += 20
+
+    fy = H - 92
+    for line in [
+        "ATURAN: jendela adalah satu-satunya jalan melihat ke dalam bangunan tanpa masuk. Ini alasan utamanya ada.",
+        "Visibilitas memakai layer 'vision blocker' terpisah dari collision — kaca utuh tidak memblokir pandangan, papan memblokir.",
+        "!Vault lewat jendela pecah TIDAK BISA saat berat Kelebihan (§8.5) — konsisten dengan larangan sprint & dodge.",
+        "!Zombie memakai NavigationLink2D yang di-enable saat jendela pecah; JANGAN rebake navmesh tiap jendela rusak.",
+    ]:
+        color = (214, 107, 107) if line.startswith("!") else (150, 150, 150)
+        d.text((40, fy), line.lstrip("!"), font=f, fill=color)
+        fy += 22
+
+    os.makedirs(OUT, exist_ok=True)
+    img.save(path)
+
+
 # --------------------------------------------------------------------------
 def main() -> None:
     ensure_out()
@@ -253,6 +354,9 @@ def main() -> None:
     make_bag().save(os.path.join(OUT, "bag.png"))
     make_player_sheet().save(os.path.join(OUT, "player.png"))
     make_walker_sheet().save(os.path.join(OUT, "walker.png"))
+    for st in ("intact", "broken", "boarded", "barricade"):
+        make_window(st).save(os.path.join(OUT, f"window_{st}.png"))
+    make_window_spec(os.path.join(ROOT, "docs", "art", "window-states-spec.png"))
 
     for f in sorted(os.listdir(OUT)):
         if f.endswith(".png"):

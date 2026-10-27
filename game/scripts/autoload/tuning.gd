@@ -60,6 +60,13 @@ const Z_WALKER_ATTACK_CD := 1.0
 const Z_WALKER_DETECT := 120.0
 const DETECT_MAX := 150.0                  # batas keras layar (§5.4)
 
+# --- jendela (§4.7) ---------------------------------------------------------
+const VAULT_TIME := 0.45                   # masuk/keluar lewat jendela pecah
+const VAULT_BLOCKED_WEIGHT := "KELEBIHAN"  # tidak bisa vault saat kelebihan muatan
+const WINDOW_HP_BOARD := 60.0
+const WINDOW_HP_BARRICADE := 120.0
+const WINDOW_ZOMBIE_CLIMB := 1.2
+
 # --- kamera & dunia ---------------------------------------------------------
 const ROOM := Vector2i(19, 10)             # ruangan greybox dalam tile
 const ROOF_FADE := 0.30                    # alpha atap saat pemain di dalam (§17.12)

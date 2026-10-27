@@ -18,6 +18,7 @@ var _attack_timer: float = 0.0
 var _attack_wave: int = 0
 var _inside_room: bool = false
 var _last_delta: float = 0.016
+var _windows: Array = []
 
 
 func _ready() -> void:
@@ -61,10 +62,33 @@ func _build_room() -> void:
 		for y in range(-1, size.y + 1):
 			var is_wall := x < 0 or y < 0 or x >= size.x or y >= size.y
 			if is_wall:
-				_add_static_tile(wall_tex, Vector2i(x, y), true)
+				if _is_window_cell(Vector2i(x, y)):
+					_add_window(Vector2i(x, y))
+				else:
+					_add_static_tile(wall_tex, Vector2i(x, y), true)
 			else:
 				var t := floor_a if (x + y) % 2 == 0 else floor_b
 				_add_static_tile(t, Vector2i(x, y), false)
+
+
+## Dinding yang diganti jendela (sisi atas & samping ruangan greybox).
+func _is_window_cell(cell: Vector2i) -> bool:
+	var size: Vector2i = Tuning.ROOM
+	if cell.y == -1 and cell.x in [4, 5, 9, 14]:
+		return true
+	if cell.y == size.y and cell.x in [3, 4, 11, 15]:
+		return true
+	if cell.x == size.x and cell.y in [2, 6]:
+		return true
+	return false
+
+
+func _add_window(cell: Vector2i) -> void:
+	var w := WindowNode.new()
+	_world_root.add_child(w)
+	w.setup(cell)
+	w.add_to_group("window")
+	_windows.append(w)
 
 
 func _add_static_tile(tex: Texture2D, cell: Vector2i, blocking: bool) -> void:
@@ -284,6 +308,29 @@ func _unhandled_input(event: InputEvent) -> void:
 			EventBus.emit_signal("notify", "God mode / revive", &"info")
 		KEY_F1:
 			_roof_root.visible = not _roof_root.visible
+		KEY_B:
+			_board_nearest_window()
+
+
+## B: papan (dari PECAH) atau barikade (dari PAPAN) pada jendela ≤1,5 tile.
+## Greybox: tanpa biaya material — di produksi butuh wood/scrap (§9.3).
+func _board_nearest_window() -> void:
+	if _player == null:
+		return
+	for w in _windows:
+		if not is_instance_valid(w):
+			continue
+		if _player.global_position.distance_to(w.global_position) > 24.0:
+			continue
+		if w.barricade_up():
+			EventBus.emit_signal("notify", "Jendela dibarikade (HP 120)", &"ok")
+			return
+		if w.board_up():
+			EventBus.emit_signal("notify", "Jendela dipapan (HP 60)", &"ok")
+			return
+		EventBus.emit_signal("notify", "Hanya jendela PECAH yang bisa dipapan", &"warn")
+		return
+	EventBus.emit_signal("notify", "Tidak ada jendela di dekatmu", &"warn")
 
 
 func _on_zombie_killed(_kind: StringName, pos: Vector2) -> void:

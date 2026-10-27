@@ -13,6 +13,9 @@ var dead: bool = false
 var _attack_timer: float = 0.0
 var _sight_timer: float = 0.0
 var _has_target: bool = false
+var _climb_time: float = 0.0
+var _climb_window: Node = null
+var _climb_to: Vector2 = Vector2.ZERO
 
 @onready var sprite: AnimatedSprite2D = $Sprite
 
@@ -26,6 +29,15 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if dead:
+		return
+
+	# --- memanjat jendela yang pecah (§4.7) ---
+	if _climb_time > 0.0:
+		_climb_time = maxf(_climb_time - delta, 0.0)
+		velocity = Vector2.ZERO
+		if _climb_time <= 0.0 and _climb_window != null and is_instance_valid(_climb_window):
+			global_position = _climb_to
+			_climb_window = null
 		return
 
 	_attack_timer = maxf(_attack_timer - delta, 0.0)
@@ -50,6 +62,13 @@ func _physics_process(delta: float) -> void:
 	var to_player := p.global_position - global_position
 	var dist := to_player.length()
 
+	# kalau pandangan terhalang dinding, coba cari jendela pecah di dekat jalur
+	if not _clear_path(p):
+		var win = _window_between(p)
+		if win != null:
+			_start_climb(win)
+			return
+
 	if dist <= Tuning.Z_WALKER_ATTACK_RANGE:
 		velocity = Vector2.ZERO
 		move_and_slide()
@@ -64,6 +83,42 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_face(to_player)
 	_play("walk")
+
+
+func _clear_path(p) -> bool:
+	var query := PhysicsRayQueryParameters2D.create(global_position, p.global_position, 1)
+	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
+
+
+## Cari jendela PECAH yang berada dekat garis lurus ke pemain (≤1,5 tile).
+func _window_between(p):
+	var to_p := (p.global_position - global_position)
+	if to_p.length() < 1.0:
+		return null
+	var dir := to_p.normalized()
+	for w in get_tree().get_nodes_in_group("window"):
+		if not w.can_vault():
+			continue
+		var rel: Vector2 = w.global_position - global_position
+		if rel.length() > 120.0:
+			continue
+		var along := rel.dot(dir)
+		if along <= 0.0:
+			continue
+		var perp := (rel - dir * along).length()
+		if perp < 14.0 and along < to_p.length():
+			return w
+	return null
+
+
+func _start_climb(w) -> void:
+	_climb_window = w
+	_climb_time = Tuning.WINDOW_ZOMBIE_CLIMB
+	var dir: Vector2 = (w.global_position - global_position).normalized()
+	_climb_to = w.global_position + dir * 16.0
+	velocity = Vector2.ZERO
+	_play("attack")            # greybox: animasi panjat dipinjam dari attack
+	EventBus.emit_signal("notify", "Walker memanjat jendela!", &"warn")
 
 
 func _can_see(p: Node2D) -> bool:

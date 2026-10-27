@@ -23,6 +23,9 @@ var _dodge_time: float = 0.0
 var _dodge_dir: Vector2 = Vector2.ZERO
 var _dodge_cd: float = 0.0
 var _dodge_requested: bool = false
+var _vault_time: float = 0.0
+var _vault_from: Vector2 = Vector2.ZERO
+var _vault_to: Vector2 = Vector2.ZERO
 var _attack_time: float = 0.0
 var _light: PointLight2D
 
@@ -46,6 +49,15 @@ func _physics_process(delta: float) -> void:
 
 	_tick_timers(delta)
 	_tick_light(delta)
+
+	if _vault_time > 0.0:
+		_vault_time = maxf(_vault_time - delta, 0.0)
+		var t: float = 1.0 - (_vault_time / Tuning.VAULT_TIME)
+		global_position = _vault_from.lerp(_vault_to, clampf(t, 0.0, 1.0))
+		_iframes = maxf(_iframes, 0.1)
+		if _vault_time <= 0.0:
+			EventBus.emit_signal("vault_finished", Vector2i(roundi(_vault_to.x / 16.0), roundi(_vault_to.y / 16.0)))
+		return
 
 	var input := _read_move_input()
 	var sprinting := Input.is_key_pressed(KEY_SHIFT) and input != Vector2.ZERO
@@ -168,7 +180,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_SPACE:
 			_dodge_requested = true
 		KEY_E:
-			try_pickup()
+			if not try_vault():
+				try_pickup()
 		KEY_R:
 			recharge_battery()
 
@@ -182,6 +195,42 @@ func _set_flashlight(on: bool) -> void:
 	if _light:
 		_light.enabled = _flashlight
 	EventBus.emit_signal("flashlight_toggled", _flashlight)
+
+
+## Masuk/keluar lewat jendela. Hanya jendela PECAH yang bisa dilewati (§4.7).
+func try_vault() -> bool:
+	if _vault_time > 0.0:
+		return false
+	if Tuning.weight_status(carry) == Tuning.VAULT_BLOCKED_WEIGHT:
+		EventBus.emit_signal("notify", "Kelebihan muatan — buang tas dulu (G)", &"warn")
+		return false
+
+	var aim := (get_global_mouse_position() - global_position).normalized()
+	if aim == Vector2.ZERO:
+		return false
+	var probe := global_position + aim * 14.0
+	var target_cell := Vector2i(floori(probe.x / 16.0), floori(probe.y / 16.0))
+
+	for w in get_tree().get_nodes_in_group("window"):
+		if w.cell != target_cell:
+			continue
+		if not w.can_vault():
+			EventBus.emit_signal("notify", "Jendela tidak bisa dilewati (utuh/papan/barikade)", &"warn")
+			return true                       # konsumsi input, jangan jatuh ke loot
+		_begin_vault(w.global_position + aim * 18.0)
+		return true
+	return false
+
+
+func _begin_vault(dest: Vector2) -> void:
+	_vault_from = global_position
+	_vault_to = dest
+	_vault_time = Tuning.VAULT_TIME
+	_iframes = maxf(_iframes, Tuning.VAULT_TIME)
+	stamina = maxf(stamina - 10.0, 0.0)
+	_play("dodge", _dir_index_from_angle((dest - _vault_from).angle()))
+	EventBus.emit_signal("vault_started", Vector2i(roundi(_vault_from.x / 16.0), roundi(_vault_from.y / 16.0)))
+	EventBus.emit_signal("notify", "Melewati jendela…", &"info")
 
 
 func try_pickup() -> void:

@@ -23,7 +23,8 @@ sangat mudah salah format; membangun node di kode jauh lebih mudah diverifikasi.
 | Shift | Sprint (pakai stamina) |
 | SPASI | Dodge roll (i-frame 0.25 s) |
 | F | Lampu senter on/off (menghabiskan baterai, menaikkan heat) |
-| E | Ambil kayu dari kontainer terdekat (+2 kg) |
+| E | **Vault lewat jendela PECAH** (0,45 s) — ditolak kalau berat Kelebihan; kalau tidak ada jendela: ambil kayu dari kontainer (+2 kg) |
+| B | Papan/barikade jendela terdekat (PECAH → papan 60 HP → barikade 120 HP) |
 | G | **Drop & Run** — buang tas, kecepatan langsung normal |
 | R | Isi ulang baterai (hanya siang, dianggap "di shelter") |
 | F5 | Lompat ke fase berikutnya (siang → senja → malam → subuh) |
@@ -41,6 +42,8 @@ sangat mudah salah format; membangun node di kode jauh lebih mudah diverifikasi.
 - **Serangan malam**: heat ≥ 25 memicu spawn walker dari tepi ruangan, cap 10.
 - **Walker**: chase + attack + mati, LOS raycast ke layer dinding, deteksi 5×/detik.
 - **Atap di-fade** (alpha 0.30) saat pemain di dalam ruangan.
+- **Jendela 4 state** (§4.2B): utuh bisa dilihat tapi tidak dilewati; **pecah** bisa di-vault pemain
+  (0,45 s) dan dipanjat walker (1,2 s); papan & barikade memblokir pandangan. Tekan **B** untuk memapan.
 - **Sprite 8 arah**: 5 baris digambar, 3 arah mirror lewat `flip_h`.
 - HUD: HP, stamina, baterai, berat, hari + jam, fase + hitung mundur, heat.
 
