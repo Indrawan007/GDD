@@ -1,6 +1,6 @@
 # The End Has Come
 
-## Game Design Document v3.5 — Canonical
+## Game Design Document v3.6 — Canonical
 
 ### Survival Open World · Shelter · Singleplayer · Godot 4.4
 
@@ -43,6 +43,7 @@
 | 21 | **Sumber seni: 1 artist kontrak**, karakter wajib custom (Q10) | §17.9 |
 | 22 | **NPC rasa disimpan untuk pasca-1.0** (Q11) | §17.5, §17.9 |
 | 23 | **Template sprite & tileset siap pakai** di `docs/art/` | §17.10 |
+| 24 | **8 arah sprite** (bukan 4), digambar 5 baris + 3 mirror | §17.1, §17.3, §17.4, §17.8 |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -67,7 +68,7 @@ Di v3.1 saya menghapus Hunger karena **run cuma 30–40 menit**: meter yang turu
 |------|--------|
 | **Judul** | The End Has Come |
 | **Genre** | Top-Down Survival Open World + Shelter Base Building |
-| **Perspektif** | Top-down, aim mouse/gamepad, 4 arah sprite + rotasi senjata |
+| **Perspektif** | Top-down, aim mouse/gamepad, **8 arah sprite** + rotasi senjata bebas |
 | **Struktur** | Satu kota persisten, seed, save/continue, hari ke hari |
 | **Multiplayer** | Singleplayer only |
 | **Map** | 1 kota prosedural (384×384 tile) + interior bangunan prosedural dari template |
@@ -1082,7 +1083,7 @@ Aturan: pemain harus bisa mengenali **"pintu mana yang sedang dipukul"** dari su
 | Palet | 32 warna global + 6 warna aksen per distrik |
 | Mood | Gelap, kotor, terbaca. Aksen merah (darah), kuning (api/listrik), hijau (racun) |
 | Filter | Nearest, mipmaps OFF, pixel snap ON |
-| Arah sprite | **4 arah** (S, N, E, W), W = mirror E. Senjata berputar sebagai node, bukan sprite 8 arah |
+| Arah sprite | **8 arah** (S, SE, E, NE, N, NW, W, SW) — digambar **5 arah**, 3 sisanya mirror di runtime (hemat 37,5%). Senjata tetap berputar bebas sebagai node |
 
 **Aturan keterbacaan (tidak bisa dinegosiasikan):**
 
@@ -1150,8 +1151,34 @@ Aturan: pemain harus bisa mengenali **"pintu mana yang sedang dipukul"** dari su
 |------|-------|
 | Canvas | 16×24, pivot di (8, 23) — **kaki di baseline**, bukan tengah |
 | Collision | 10×10 di kaki (bukan seluruh sprite) — supaya gerak di lorong sempit tidak terasa mentok |
-| Arah | 4 (S, N, E, W); W = mirror E |
-| Total frame | **±120** (30 per arah) |
+| Arah | **8** (S, SE, E, NE, N, NW, W, SW). Digambar 5, mirror 3 |
+| Total frame di atlas | **240** (30 × 8 arah) |
+| **Frame yang harus digambar** | **150** (30 × 5 arah) — 90 frame dihemat lewat mirror |
+
+**Kenapa 8 arah, dan bagaimana biayanya tidak jadi 2× (keputusan v3.6):**
+
+Pemain bergerak 8 arah (WASD/stick), jadi sprite 4 arah membuat gerak diagonal terlihat "menggeser" bukan berjalan. Dengan 8 arah, arah hadap **selalu mengikuti arah gerak**, sementara senjata tetap berputar bebas ke kursor — ini yang membuat gerakan terasa cair tanpa perlu menggambar 240 frame.
+
+```text
+Digambar (5 baris):  S · SE · E · NE · N
+Mirror di runtime :  SW = SE flip_h · W = E flip_h · NW = NE flip_h
+```
+
+```gdscript
+# entities/player_sprite.gd — arah 8 arah + mirror, tanpa frame ekstra
+const ANIM := ["s", "se", "e", "ne", "n", "ne", "e", "se"]
+const FLIP := [false, false, false, false, false, true, true, true]
+# index 0..7 = S, SE, E, NE, N, NW, W, SW
+
+func apply_dir(dir: Vector2, anim_base: String) -> void:
+    if dir == Vector2.ZERO: return
+    var idx := int(round(dir.angle() / (PI / 4.0)))      # -4..4
+    idx = posmod(idx + 6, 8)                              # geser: 0 = arah S
+    sprite.play(StringName(anim_base + "_" + ANIM[idx]))
+    sprite.flip_h = FLIP[idx]
+```
+
+> Catatan asimetri: mirror hanya sah kalau desain karakter **simetris secara horizontal** (baju, rambut pendek, tanpa tas selempang). Kalau nanti ada detail asimetris (mis. tas di satu bahu), baris mirror harus digambar manual untuk bagian itu — atau detailnya dipindah ke layer aksesori terpisah.
 
 | Animasi | Frame | FPS | Catatan |
 |---------|-------|-----|---------|
@@ -1168,18 +1195,20 @@ Aturan: pemain harus bisa mengenali **"pintu mana yang sedang dipukul"** dari su
 
 ### 17.4 Sprite Zombie
 
-| Zombie | Canvas | Frame (per arah) | Total | Siluet yang membedakan |
-|--------|--------|------------------|-------|------------------------|
-| Walker | 16×24 | idle 2, walk 4, attack 4, hurt 1, death 5 = **16** | 64 | Bungkuk, tangan menjuntai |
-| Runner | 16×24 | 16 | 64 | Condong ke depan, langkah lebar |
-| Spitter | 16×24 | 16 (+3 spit) | 76 | Perut besar, leher panjang |
-| Screamer | 16×24 | 16 | 64 | Kurus, mulut terbuka permanen |
-| Tank | 24×32 | 16 | 64 | Massif, bahu lebar, 1,5× tinggi pemain |
-| Exploder | 16×24 | 16 | 64 | Bengkak, urat menyala (2 frame pulsing) |
-| Stalker | 16×24 | 16 (+4 leap) | 80 | Sangat kurus, merunduk, hampir menyentuh tanah |
-| **The Hive** (boss) | 48×48 | 30 | 30 | Sarang besar, bukan humanoid; 3 fase visual |
+| Zombie | Canvas | Frame/arah | Atlas (×8) | Digambar (×5) | Siluet yang membedakan |
+|--------|--------|-----------|-----------|---------------|------------------------|
+| Walker | 16×24 | 16 | 128 | **80** | Bungkuk, tangan menjuntai |
+| Runner | 16×24 | 16 | 128 | 80 | Condong ke depan, langkah lebar |
+| Spitter | 16×24 | 16 (+3 spit) | 152 | 95 | Perut besar, leher panjang |
+| Screamer | 16×24 | 16 | 128 | 80 | Kurus, mulut terbuka permanen |
+| Tank | 24×32 | 16 | 128 | 80 | Massif, bahu lebar, 1,5× tinggi pemain |
+| Exploder | 16×24 | 16 | 128 | 80 | Bengkak, urat menyala (2 frame pulsing) |
+| Stalker | 16×24 | 16 (+4 leap) | 160 | 100 | Sangat kurus, merunduk, hampir menyentuh tanah |
+| **The Hive** (boss) | 48×48 | 30 | 30 | 30 | Sarang besar, bukan humanoid; 3 fase visual |
 
-Total zombie humanoid: **±476 frame**. Ini angka besar — lihat §17.8 untuk cara memangkasnya.
+Total zombie humanoid: **896 frame di atlas, ±595 frame digambar** (7 tipe). Tanpa strategi mirror, angka ini akan jadi 1.152 frame digambar — itulah alasan mirror dipakai, bukan karena malas.
+
+**Aturan arah untuk zombie:** zombie juga 8 arah + mirror, karena mereka mengejar pemain secara diagonal hampir sepanjang waktu. Zombie 4 arah akan terlihat "meluncur" — dan itu merusak salah satu hal terbaik di game ini: melihat kerumunan datang dari sudut.
 
 **Aturan zombie:**
 
@@ -1187,6 +1216,7 @@ Total zombie humanoid: **±476 frame**. Ini angka besar — lihat §17.8 untuk c
 - **Jangan bedakan tipe hanya dengan warna.** Runner merah vs Walker hijau = gagal untuk buta warna. Bedakan dengan **postur, tinggi, dan lebar**.
 - Exploder wajib punya **pola kedip** (bukan cuma warna) 2 detik sebelum meledak — ini telegraph, bukan hiasan.
 - Detail kecil (jam tangan, luka, seragam) hanya di 1 frame idle, tidak di semua frame.
+- Zombie **boleh asimetris** (baju robek di satu sisi) karena mayat tidak harus simetris — tapi kalau asimetris, baris mirror tidak bisa dipakai dan biayanya naik ±60%. Untuk EA: **jaga simetri**, taruh kerusakan di tekstur/warna, bukan di bentuk.
 
 ### 17.5 Sprite NPC
 
@@ -1248,22 +1278,23 @@ Perkiraan kerja **1 pixel artist penuh waktu**:
 | Pekerjaan | Perkiraan |
 |-----------|-----------|
 | Tileset 1 distrik (±260 tile) | 2,5 minggu |
-| Player (±120 frame) | 1 minggu |
-| 1 zombie humanoid (64 frame) | 4 hari |
-| 7 zombie + boss | 5 minggu |
+| Player (150 frame digambar, 8 arah) | 1,3 minggu |
+| 1 zombie humanoid (80 frame digambar) | 4,5 hari |
+| 7 zombie + boss (±595 frame) | 6,5 minggu |
 | Prop interior + eksterior | 3 minggu |
 | Item + UI icon | 1,5 minggu |
 | Efek + polish | 1 minggu |
-| **Total 5 distrik (EA)** | **±26 minggu** |
-| **Total 8 distrik (1.0)** | **±34 minggu** |
+| **Total 5 distrik (EA)** | **±27 minggu** |
+| **Total 8 distrik (1.0)** | **±35 minggu** |
 
 Art adalah **jalur kritis** proyek ini, bukan coding. Konsekuensi yang harus diterima sekarang:
 
 1. **Untuk EA (minggu 28):** 5 distrik **tidak akan selesai** oleh 1 artist tanpa mulai sejak minggu 1. Pilih salah satu: (a) 2 artist, (b) EA dengan 3 distrik bernuansa lengkap + 2 distrik "greybox bertekstur", atau (c) mundurkan EA ke minggu 34.
 2. **Placeholder sampai minggu 14** (§17.9). Jangan ada seni final sebelum slice lulus gate.
 3. **Pangkas biaya dengan cara yang tidak terlihat:**
+   - **8 arah dengan 5 baris + mirror**: −37,5% frame (90 frame player, ±300 frame zombie)
    - Walk zombie 4 frame (bukan 6): −33% animasi walk
-   - **Base body + varian**: 1 rig humanoid dasar (walker) dipakai semua zombie, varian hanya kepala/torso/aksesori → hemat **±35%** dari total zombie
+   - **Base body + varian**: 1 rig humanoid (walker) dipakai semua zombie, varian hanya kepala/torso/aksesori → hemat **±35%**
    - Player sprint memakai walk di FPS lebih tinggi: −24 frame
    - Palette swap untuk variasi karakter: 0 frame tambahan
    - NPC statis (bukan berjalan): 0 sistem tambahan
@@ -1552,8 +1583,10 @@ NIGHT RAID (§7.5)
 
 ASET (§17)
   Tile 16×16 · karakter 16×24 (pivot 8,23) · collision pemain 10×10
-  Player 120 frame (4 arah) · zombie humanoid 64 frame/tipe (walk 4)
-  Zombie total ±476 frame · boss 30 · NPC trader 8
+  Arah: 8 (digambar 5 baris, mirror: SE→SW · E→W · NE→NW)
+  Player 240 frame di atlas / 150 digambar
+  Zombie humanoid 128 di atlas / 80 digambar per tipe → 7 tipe ±595 digambar
+  Boss 30 · NPC trader 8
   Tileset/distrik ±260 tile (prop di atlas bersama) · 5 layer TileMapLayer
   1 artist: 2,5 minggu/distrik → 5 distrik ±26 minggu (jalur kritis)
 
@@ -1591,7 +1624,7 @@ Gate: gerak & serang di 1 chunk statis, 60 FPS, dua input jalan
 ☐ Hunger/thirst/battery + food/water/battery loot
 ☐ Berat dasar: kg di item, 4 ambang, HUD kg, Drop & Run
 ☐ HUD, night report, save/load
-☐ **Aset:** 1 tileset Suburban (placeholder bersih, ukuran/pivot final) + player 8 frame + walker 4 frame
+☐ **Aset:** 1 tileset Suburban (placeholder bersih, ukuran/pivot final) + player idle/walk 8 arah + walker walk 8 arah
   → semua placeholder WAJIB pakai canvas/pivot/nama animasi final (§17.9)
 Gate (7 playtester, 2 sesi):
   □ 4/7 bilang "malam terasa menegangkan, tapi adil"
@@ -1739,7 +1772,7 @@ Per run:   hari bertahan, penyebab mati, jarak dari shelter saat mati, corpse ba
 | Timer siang 70 detik | v2 | Terlalu pendek untuk satu objektif |
 | Scrap carry 50% saat mati | v2 | Menciptakan strategi "timbun lalu mati" |
 | Meter Hunger tanpa konteks | v3.1 | Dihapus karena run 30 menit; **kembali** di v3.2 karena save 10–30 jam (§0.3) |
-| Sprite 8 arah | v2 | Biaya seni 2×, hasil hampir sama (4 arah + rotasi senjata) |
+| ~~Sprite 8 arah~~ | v2 | **DIBATALKAN di v3.6** — 8 arah dipakai kembali, dengan 5 baris + mirror supaya biayanya +25%, bukan +100% (§17.3) |
 | Deteksi zombie 250px | v2 | Di luar layar = tidak adil |
 | Barricade sebagai pilar (tower defense) | v1 | Shelter sudah jadi pilar; barricade jadi bagiannya, bukan game sendiri |
 | Judul "Dead Pixel" | v1/v2 | Bertabrakan dengan *Dead Pixels* (CSR-Studios, 2012) |
@@ -1771,7 +1804,7 @@ Per run:   hari bertahan, penyebab mati, jarak dari shelter saat mati, corpse ba
 | D16 | Kereta dorong | **Opsional** (Q7) | Boleh dipotong tanpa merusak sistem berat (§8.5 aturan 7) |
 | D17 | Berat senjata & armor | **Dihitung semua, termasuk slot hotbar** (Q8) | 4 senjata + vest + helm = 17 kg sebelum loot (§8.5 aturan 6) |
 | D18 | Penalti Fatigue | **−15% stamina maks saja, 1 hari** (Q9) | Tidak ada penalti hunger/thirst; shelter damage sudah jadi penalti utama |
-| D19 | Spesifikasi aset | **Tileset 16×16 per distrik (±263 tile), karakter 16×24, 4 arah, prop di atlas bersama** | §17. Detail frame, atlas, import, dan aturan keterbacaan |
+| D19 | Spesifikasi aset | **Tileset 16×16 per distrik (±263 tile), karakter 16×24, 8 arah (5 digambar + 3 mirror)** | §17. Tambahan ±3 minggu seni untuk 8 arah (§17.8) |
 | D20 | NPC | **Trader saja (2 lokasi, statis)**. NPC rasa ditunda ke pasca-1.0 | Tanpa companion AI. NPC bergerak = +4–6 minggu (§17.5) |
 | D21 | Sumber seni | **1 artist kontrak 5–6 bulan** (Q10) | Karakter wajib custom; tileset komersial boleh untuk ground/wall (§17.9) |
 

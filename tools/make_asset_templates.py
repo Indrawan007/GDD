@@ -29,6 +29,8 @@ ACCENT = (232, 176, 75)
 PIVOT = (78, 201, 176)
 GROUP = (92, 132, 168)
 WARN = (214, 107, 107)
+MIRROR_BG = (46, 40, 34)
+MIRROR_LINE = (110, 84, 56)
 
 
 def font(size: int, bold: bool = False):
@@ -50,7 +52,7 @@ def draw_sheet(
     cell_w: int,
     cell_h: int,
     groups: list[Group],
-    rows: list[tuple[str, str]],
+    rows: list[tuple[str, str, str | None]],
     pivot: tuple[int, int] | None,
     footers: list[str],
     scale: int = 4,
@@ -118,8 +120,14 @@ def draw_sheet(
         x += w
     d.line([x, grid_top - head_h + 8, x, grid_top + len(rows) * ch], fill=GROUP, width=2)
 
+    # --- pola untuk baris mirror (dibuat sekali) ---------------------------
+    hatch = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))
+    hd = ImageDraw.Draw(hatch)
+    for k in range(-ch, cw, 22):
+        hd.line([k, ch, k + ch, 0], fill=(*MIRROR_LINE, 90), width=2)
+
     # --- baris ------------------------------------------------------------
-    for r, (row_name, row_note) in enumerate(rows):
+    for r, (row_name, row_note, mirror_src) in enumerate(rows):
         y = grid_top + r * ch
 
         d.text((margin, y + ch // 2 - 26), row_name, font=font(26, True), fill=TEXT)
@@ -130,12 +138,19 @@ def draw_sheet(
         idx = 0
         for g in groups:
             for _ in range(g.frames):
-                d.rectangle([x, y, x + cw - 2, y + ch - 2], fill=CELL, outline=GRID)
-                d.text((x + 5, y + 3), str(idx), font=font(12), fill=(110, 110, 110))
-                if pivot is not None:
-                    px, py = x + pivot[0] * scale, y + pivot[1] * scale
-                    d.line([px - 6, py, px + 6, py], fill=PIVOT, width=2)
-                    d.line([px, py - 6, px, py - 2], fill=PIVOT, width=2)
+                if mirror_src:
+                    d.rectangle([x, y, x + cw - 2, y + ch - 2], fill=MIRROR_BG, outline=GRID)
+                    img.paste(hatch, (x, y), hatch)   # pola diagonal "jangan digambar"
+                    if idx % 4 == 0:
+                        d.text((x + 6, y + ch // 2 - 8), "MIRROR", font=font(13, True),
+                               fill=(126, 96, 62))
+                else:
+                    d.rectangle([x, y, x + cw - 2, y + ch - 2], fill=CELL, outline=GRID)
+                    d.text((x + 5, y + 3), str(idx), font=font(12), fill=(110, 110, 110))
+                    if pivot is not None:
+                        px, py = x + pivot[0] * scale, y + pivot[1] * scale
+                        d.line([px - 6, py, px + 6, py], fill=PIVOT, width=2)
+                        d.line([px, py - 6, px, py - 2], fill=PIVOT, width=2)
                 x += cw
                 idx += 1
             # pemisah grup
@@ -247,30 +262,35 @@ def main() -> None:
         Group("INTERACT", 3, "8 fps", "loot/pintu"),
     ]
     player_rows = [
-        ("S", "depan"),
-        ("N", "belakang"),
-        ("E", "kanan"),
-        ("W", "= mirror E"),
+        ("S", "depan", None),
+        ("SE", "depan-kanan", None),
+        ("E", "kanan", None),
+        ("NE", "belakang-kanan", None),
+        ("N", "belakang", None),
+        ("NW", "mirror NE", "NE"),
+        ("W", "mirror E", "E"),
+        ("SW", "mirror SE", "SE"),
     ]
     draw_sheet(
         os.path.join(OUT, "player-sheet-guide.png"),
-        "PLAYER — SPRITE SHEET TEMPLATE",
-        "The End Has Come · 16×24 px per sel · 4 arah · 30 frame per arah = 120 frame",
+        "PLAYER — SPRITE SHEET TEMPLATE (8 ARAH)",
+        "The End Has Come · 16×24 px per sel · 8 arah · 30 frame/arah = 240 frame di atlas · 150 frame digambar",
         cell_w=16,
         cell_h=24,
         groups=player_groups,
         rows=player_rows,
         pivot=(8, 23),
         footers=[
+            "8 ARAH: gambar 5 baris saja (S, SE, E, NE, N). Baris NW/W/SW bertanda M = hasil MIRROR, JANGAN digambar.",
+            "Pemetaan mirror: SE→SW · E→W · NE→NW. Runtime pakai flip_h + tabel arah, hemat 90 frame (37,5%).",
             "Pivot (8,23) = kaki di baseline (tanda + hijau). Collision 10×10 di kaki, BUKAN seluruh sprite.",
-            "Baris W boleh dikosongkan: di Godot pakai flip_h pada baris E. Hemat 30 frame.",
+            "!Body menghadap arah GERAK (8 arah); senjata tetap berputar bebas ke arah kursor.",
+            "!Nama animasi: walk_s, walk_se, walk_e, walk_ne, walk_n (+ flip). Arah di akhir nama.",
             "!Walk 6 frame dipakai juga untuk sprint (FPS 12). Jangan gambar animasi run terpisah.",
-            "!Varian survivor (3 warna) lewat palette swap ShaderMaterial — 0 frame tambahan.",
-            "!Nama animasi di SpriteFrames: walk_s, walk_n, walk_e, attack_melee_s, death_e (arah di akhir).",
-            "Simpan sebagai 1 atlas PNG per karakter + SpriteFrames .tres. Jangan 1 file per frame.",
+            "Varian survivor (3 warna) lewat palette swap ShaderMaterial — 0 frame tambahan.",
         ],
     )
-    save_clean_1x(os.path.join(OUT, "player-sheet-1x.png"), cols=30, rows=4, cell_w=16, cell_h=24)
+    save_clean_1x(os.path.join(OUT, "player-sheet-1x.png"), cols=30, rows=8, cell_w=16, cell_h=24)
 
     # ---------------- ZOMBIE ------------------------------------------------
     zombie_groups = [
@@ -282,23 +302,33 @@ def main() -> None:
     ]
     draw_sheet(
         os.path.join(OUT, "zombie-sheet-guide.png"),
-        "ZOMBIE HUMANOID — SPRITE SHEET TEMPLATE",
-        "Walker sebagai base body · 16×24 px · 4 arah · 16 frame per arah = 64 frame",
+        "ZOMBIE HUMANOID — SPRITE SHEET TEMPLATE (8 ARAH)",
+        "Walker sebagai base body · 16×24 px · 8 arah · 16 frame/arah = 128 di atlas · 80 digambar",
         cell_w=16,
         cell_h=24,
         groups=zombie_groups,
-        rows=[("S", "depan"), ("N", "belakang"), ("E", "kanan"), ("W", "= mirror E")],
+        rows=[
+            ("S", "depan", None),
+            ("SE", "depan-kanan", None),
+            ("E", "kanan", None),
+            ("NE", "belakang-kanan", None),
+            ("N", "belakang", None),
+            ("NW", "mirror NE", "NE"),
+            ("W", "mirror E", "E"),
+            ("SW", "mirror SE", "SE"),
+        ],
         pivot=(8, 23),
         footers=[
+            "8 ARAH: gambar 5 baris (S, SE, E, NE, N); NW/W/SW = MIRROR (M). Pemetaan: SE→SW, E→W, NE→NW.",
             "BASE BODY + VARIAN: gambar 1 rig (walker), lalu varian hanya kepala/torso/aksesori.",
-            "Runner · Spitter · Screamer · Exploder · Stalker memakai 64 frame yang sama (± hemat 35%).",
+            "Runner · Spitter · Screamer · Exploder · Stalker memakai rig yang sama (± hemat 35%).",
             "Tank: canvas 24×32, animasi sama. The Hive: 48×48, 30 frame, bukan humanoid.",
             "!Bedakan tipe lewat SILUET (postur, tinggi, lebar), BUKAN warna — syarat buta warna.",
             "!Spitter +3 frame spit · Stalker +4 frame leap · Exploder 2 frame pulsing (telegraph).",
             "!Walk 4 frame, bukan 6. Jalan pincang justru lebih terbaca dengan 4 frame.",
         ],
     )
-    save_clean_1x(os.path.join(OUT, "zombie-sheet-1x.png"), cols=16, rows=4, cell_w=16, cell_h=24)
+    save_clean_1x(os.path.join(OUT, "zombie-sheet-1x.png"), cols=16, rows=8, cell_w=16, cell_h=24)
 
     # ---------------- NPC ---------------------------------------------------
     npc_groups = [
@@ -313,7 +343,7 @@ def main() -> None:
         cell_w=16,
         cell_h=24,
         groups=npc_groups,
-        rows=[("S", "menghadap"), ("E/W", "mirror")],
+        rows=[("S", "menghadap", None), ("E/W", "opsional", None)],
         pivot=(8, 23),
         footers=[
             "Trader statis di balik meja — TIDAK ada pathfinding, jadwal, atau dialog berjalan.",
@@ -330,6 +360,8 @@ def main() -> None:
 
     print("selesai →", OUT)
     for f in sorted(os.listdir(OUT)):
+        if not f.endswith(".png"):
+            continue
         p = os.path.join(OUT, f)
         with Image.open(p) as im:
             print(f"  {f:34s} {im.size[0]:>5}×{im.size[1]:<5} {os.path.getsize(p) // 1024:>4} KB")
