@@ -83,6 +83,27 @@ def check_indent(path: str, text: str) -> None:
             return
 
 
+
+def untyped_members_of(path: str, text: str) -> set[str]:
+    """Semua variabel (member maupun lokal) yang dideklarasikan tanpa tipe = Variant."""
+    names: set[str] = set()
+    for m in re.finditer(r"^\s*var\s+(\w+)\s*(.*)$", text, re.M):
+        rest = m.group(2)
+        head = rest.split("=")[0]
+        if not head.strip() and "=" not in rest:      # `var x` tanpa nilai
+            names.add(m.group(1))
+        elif "=" in rest and ":" not in head:          # `var x = ...` tanpa tipe
+            names.add(m.group(1))
+    return names
+
+
+def untyped_hits(expr: str, untyped: set[str], path: str) -> str:
+    for name in untyped:
+        if re.search(r"\b__SELF__\b|\b" + re.escape(name) + r"\b", expr):
+            return name
+    return ""
+
+
 def check_paths(path: str, text: str) -> None:
     for ln, line in enumerate(text.splitlines(), 1):
         for m in re.finditer(r'(load|preload)\("(res://[^"]+)"\)', line):
@@ -126,6 +147,8 @@ def main() -> int:
         for d in sorted(dupes):
             errors.append(f"{rel(path)}: fungsi '{d}' dideklarasikan lebih dari sekali")
 
+        untyped_members = untyped_members_of(path, text)
+
         # signal bus
         for ln, line in enumerate(text.splitlines(), 1):
             for m in re.finditer(r'EventBus\.emit_signal\("(\w+)"', line):
@@ -139,6 +162,18 @@ def main() -> int:
             for m in re.finditer(r"\bTuning\.([A-Z_][A-Z0-9_]*)", line):
                 if m.group(1) not in consts:
                     errors.append(f"{rel(path)}:{ln}: konstanta Tuning.{m.group(1)} tidak ada")
+
+            # GDScript tidak punya `x in (A, B)` seperti Python
+            if re.search(r"\bin\s*\(", line):
+                errors.append(
+                    f"{rel(path)}:{ln}: `in (A, B)` bukan GDScript — pakai `or` / Array")
+
+            # `:=` dari ekspresi yang menyentuh variabel/fungsi untyped (Variant)
+            m_assign = re.match(r"\s*var\s+\w+\s*:=\s*(.+)$", line)
+            if m_assign and untyped_hits(m_assign.group(1), untyped_members, path):
+                errors.append(
+                    f"{rel(path)}:{ln}: `:=` tidak bisa menginfer tipe dari ekspresi Variant "
+                    f"({untyped_hits(m_assign.group(1), untyped_members, path)}) — tulis tipe eksplisit")
 
         # $Node yang dibuat di file yang sama
         built = set(re.findall(r'\.name\s*=\s*"(\w+)"', text))

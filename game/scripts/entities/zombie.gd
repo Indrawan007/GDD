@@ -59,7 +59,7 @@ func _physics_process(delta: float) -> void:
 		_play("idle")
 		return
 
-	var to_player := p.global_position - global_position
+	var to_player: Vector2 = p.global_position - global_position
 	var dist := to_player.length()
 
 	# kalau pandangan terhalang dinding, coba cari jendela pecah di dekat jalur
@@ -85,17 +85,18 @@ func _physics_process(delta: float) -> void:
 	_play("walk")
 
 
-func _clear_path(p) -> bool:
-	var query := PhysicsRayQueryParameters2D.create(global_position, p.global_position, 1)
+func _clear_path(p: Node2D) -> bool:
+	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(
+			global_position, p.global_position, 1)
 	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 
 
 ## Cari jendela PECAH yang berada dekat garis lurus ke pemain (≤1,5 tile).
-func _window_between(p):
-	var to_p := (p.global_position - global_position)
+func _window_between(p: Node2D):
+	var to_p: Vector2 = p.global_position - global_position
 	if to_p.length() < 1.0:
 		return null
-	var dir := to_p.normalized()
+	var dir: Vector2 = to_p.normalized()
 	for w in get_tree().get_nodes_in_group("window"):
 		if not w.can_vault():
 			continue
@@ -126,7 +127,8 @@ func _can_see(p: Node2D) -> bool:
 			Tuning.DETECT_MAX)
 	if global_position.distance_to(p.global_position) > detect:
 		return false
-	var query := PhysicsRayQueryParameters2D.create(global_position, p.global_position, 1)
+	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(
+			global_position, p.global_position, 1)
 	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 
 
@@ -146,7 +148,7 @@ func _current_dir_index() -> int:
 	var p = GameManager.player
 	if p == null:
 		return 0
-	var dir := p.global_position - global_position
+	var dir: Vector2 = p.global_position - global_position
 	if dir == Vector2.ZERO:
 		return 0
 	return posmod(int(round(dir.angle() / (PI / 4.0))) + 2, 8)

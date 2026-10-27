@@ -2,7 +2,27 @@
 
 Prototipe **1 ruangan** untuk memvalidasi kontrak desain sebelum satu pixel seni final digambar.
 
-> **Status jujur:** kode ini ditulis tanpa bisa menjalankan Godot (sandbox agent tidak punya engine dan unduhan binary diblokir). Sudah lolos `tools/lint_gdscript.py` (kurung, indentasi, path aset, nama signal, nama konstanta, fungsi ganda), tapi **belum pernah dijalankan di engine**. Kalau ada error saat pertama dibuka, kemungkinan besar di baris yang ditandai `# GREYBOX-TODO` atau pada pemanggilan API editor. Laporkan, saya perbaiki.
+> **Status:** versi ini sudah melewati **satu putaran tes nyata di Godot 4.4** (lihat bagian *Perbaikan setelah tes pertama*). Error parser yang dilaporkan sudah diperbaiki, dan lint lokal ditambah dua aturan baru supaya kesalahan sejenis tidak terulang.
+>
+> Masih ada kemungkinan error di tempat yang belum tersentuh tes (mis. urutan `_ready` saat pertama kali memuat aset). Laporkan pesan error persisnya — pengerjaan jadi jauh lebih cepat kalau ada nomor baris.
+
+## Perbaikan setelah tes pertama (Godot 4.4)
+
+Empat error dilaporkan. Akarnya **dua kebiasaan Python yang tidak ada di GDScript**:
+
+| Gejala di engine | Penyebab | Perbaikan |
+|------------------|----------|-----------|
+| `Expected closing ")" after grouping expression` (window_node.gd:79, 86) | `state in (State.BROKEN, State.INTACT)` — GDScript tidak punya `in (A, B)` | Diganti `state == State.BROKEN or state == State.INTACT` |
+| `Could not resolve class "WindowNode"` (main.gd:87) | Error parser di atas membuat file gagal di-parse, jadi `class_name` tidak terdaftar | Ikut hilang setelah di atas diperbaiki |
+| `Cannot infer the type of "w"` | Cascade dari `WindowNode` yang tak terdaftar | Ikut hilang |
+| `Cannot infer the type of "inside"` dan `"lit"` (main.gd:199, 209) | `:=` dipakai pada ekspresi yang menyentuh variabel **untyped** (`_player`) → tipenya Variant, tidak bisa diinfer | Diganti `var inside: bool = ...` dan `var lit: bool = ...` |
+
+Saat memeriksa ulang, ditemukan **5 masalah sejenis di `zombie.gd`** yang belum sempat muncul karena file itu berhenti di error parser lebih dulu (`var x := p.global_position` dengan `p` untyped). Semua sudah diberi tipe eksplisit.
+
+Dua aturan baru di `tools/lint_gdscript.py`:
+
+1. `in (A, B)` → error (bukan GDScript).
+2. `:=` yang menyentuh variabel untyped → error "tidak bisa menginfer tipe Variant".
 
 ## Cara menjalankan
 

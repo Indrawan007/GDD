@@ -7,7 +7,7 @@ extends Node2D
 
 const TILE := 16
 
-var _player                      # untyped: akses properti script (hp, carry, dead)
+var _player                           # Variant: akses properti/call dinamis aman
 var _ysort: Node2D
 var _roof_root: Node2D
 var _world_root: Node2D
@@ -196,7 +196,7 @@ func _update_roof() -> void:
 	if _player == null:
 		return
 	var size: Vector2i = Tuning.ROOM
-	var inside := _player.global_position.x > 0 and _player.global_position.y > 0 \
+	var inside: bool = _player.global_position.x > 0 and _player.global_position.y > 0 \
 			and _player.global_position.x < size.x * TILE \
 			and _player.global_position.y < size.y * TILE
 	if inside != _inside_room:
@@ -206,7 +206,7 @@ func _update_roof() -> void:
 
 
 func _update_heat(delta: float) -> void:
-	var lit := _player != null and _player.call("is_flashlight_on") == true
+	var lit: bool = _player != null and _player.call("is_flashlight_on") == true
 	if lit:
 		_heat = minf(_heat + Tuning.HEAT_LIGHT * delta, 100.0)
 	else:

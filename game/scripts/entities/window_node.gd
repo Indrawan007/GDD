@@ -76,19 +76,19 @@ func can_vault() -> bool:
 
 
 func can_drop_through() -> bool:
-	return state in (State.BROKEN, State.INTACT)     # keluar lewat jendela
+	return state == State.BROKEN or state == State.INTACT    # keluar lewat jendela
 
 
 ## Peluru yang mengenai kaca utuh akan memecahkannya.
 func on_projectile_hit() -> void:
 	if state == State.INTACT:
 		_smash()
-	elif state in (State.BOARDED, State.BARRICADE):
+	elif state == State.BOARDED or state == State.BARRICADE:
 		damage(20.0)
 
 
 func damage(amount: float) -> void:
-	if state in (State.INTACT, State.BROKEN):
+	if state == State.INTACT or state == State.BROKEN:
 		return
 	hp -= amount
 	if hp <= 0.0:

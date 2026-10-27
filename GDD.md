@@ -1,6 +1,6 @@
 # The End Has Come
 
-## Game Design Document v3.10 — Canonical
+## Game Design Document v3.10.1 — Canonical
 
 ### Survival Open World · Shelter · Singleplayer · Godot 4.4
 
@@ -48,6 +48,7 @@
 | 26 | **Kontrak proyeksi dikunci sebagai angka** + tes penerimaan aset | §17.12, `docs/art/projection-3q-spec.png` |
 | 27 | **Prototipe greybox 1 ruangan** ada di repo (`game/`) | §21B, `game/README.md` |
 | 28 | **Jendela: 4 state, bisa dilihat & dilewati lewat state pecah** | §4.2B, `docs/art/window-states-spec.png` |
+| 29 | **Tes pertama di engine:** 4 error parser diperbaiki + lint diperkuat | §21B, `game/README.md` |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -1851,7 +1852,9 @@ Greybox 1 ruangan sudah ada di `game/` untuk menguji kontrak desain **sebelum** 
 
 **Aturan pemakaian:** angka di `game/scripts/autoload/tuning.gd` mengikuti §20. Yang dipendekkan hanya durasi fase (siang 120 s, malam 30 s) agar bisa dites dalam 2 menit. **Jangan menaikkan angka produksi karena greybox terasa enak** — kalau ada yang perlu diubah, ubah §20 dulu beserta alasannya.
 
-**Batas jujur:** kode greybox ditulis tanpa bisa menjalankan engine di lingkungan ini; verifikasi yang tersedia adalah `tools/lint_gdscript.py` (kurung, indentasi, path aset, nama signal & konstanta, fungsi ganda). Rincian batasan dan kontrol ada di `game/README.md`.
+**Batas jujur:** kode greybox ditulis tanpa bisa menjalankan engine di lingkungan ini. Verifikasi otomatis tersedia lewat `tools/lint_gdscript.py` (kurung, indentasi, path aset, nama signal & konstanta, fungsi ganda, `in (A,B)`, dan `:=` dari ekspresi Variant). Putaran tes pertama di Godot 4.4 menemukan 4 error parser — semuanya dari asumsi sintaks Python — dan sudah diperbaiki; rinciannya di `game/README.md` bagian *Perbaikan setelah tes pertama*.
+
+**Pelajaran untuk sisa proyek:** dua pola yang harus dihindari di GDScript — `x in (A, B)` (tidak ada) dan `:=` pada ekspresi yang menyentuh variabel untyped. Keduanya sudah dicegat lint, jadi biayanya sekarang nol.
 
 ---
 
