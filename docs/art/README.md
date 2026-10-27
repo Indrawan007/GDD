@@ -14,6 +14,25 @@ Lembar kerja sprite & tileset sesuai spesifikasi §17 GDD (v3.8) — **proyeksi 
 | `npc-trader-sheet-1x.png` | Kanvas transparan 128×48 px | Digambar di Aseprite |
 | `tileset-atlas-map.png` | Peta atlas 32×32 sel (512×512 px) + pembagian region, termasuk wall face | Brief ke artist |
 | `projection-3q-spec.png` | **Kontrak proyeksi**: anatomi tile dinding, penampang, BOLEH vs JANGAN | Wajib dibaca sebelum menggambar apa pun |
+| **`player-character-sheet.png`** | **SET FINAL v1**: turnaround 5 arah, palet 26 warna, catatan produksi | Acuan gaya untuk semua karakter lain |
+| **`player-sheet-final.png`** | **SET FINAL v1**: 150 frame berlabel, 6× zoom | Review animasi per frame |
+| **`player-walk-preview.gif`** | Walk cycle 5 arah, 8× zoom | Cek ritme jalan |
+| **`game/assets/sprites/player.png`** | Atlas final 480×120 (30 kolom × 5 baris), dipakai engine | File yang dibaca `SpriteFactory` |
+
+## Set final v1 — sudah ada, bukan template lagi
+
+Pemain sudah punya set lengkap: **150 frame digambar** (30 frame × 5 arah), digenerate oleh `tools/make_player_sprites.py`, dan engine memakainya (`SpriteFactory.player_frames()`).
+
+| Keputusan | Nilai | Alasan |
+|---|---|---|
+| Arah cahaya | **dari atas**, bukan kiri-atas | Baris E/SE dipakai juga sebagai W/SW lewat `flip_h`. Cahaya dari kiri akan terbalik saat mirror dan terbaca sebagai karakter lain. |
+| Kepala | 6 px (bahu 8 px, rasio 0,75) | Wajah 5 px hanya menyisakan 1 px di antara mata → terbaca seperti topeng. |
+| Tangan & sepatu | nada lebih terang dari lengan/kaki | Menandai ujung anggota badan tanpa perlu outline tambahan. |
+| Pemisah bagian | **selout** 1 px (nada gelap di tepi dalam) | Tanpa ini lengan menyatu dengan badan jadi satu balok. |
+| Simetri | wajib | Detail asimetris membatalkan baris mirror (§17.3). |
+| Palet | 26 warna, 3 langkah per material | Batas §17.1: 32 global, tanpa anti-aliasing. |
+
+**Yang belum ada di set v1 (jujur):** transisi death/dodge masih pose tunggal (belum di-keyframe tangan per frame), belum ada varian hurt per arah senjata, belum ada palette swap oranye/abu (tinggal ganti huruf `j/J/k`).
 
 ## Aturan pakai
 

@@ -1,6 +1,6 @@
 # The End Has Come
 
-## Game Design Document v3.10.2 — Canonical
+## Game Design Document v3.11 — Canonical
 
 ### Survival Open World · Shelter · Singleplayer · Godot 4.7.2
 
@@ -50,6 +50,7 @@
 | 28 | **Jendela: 4 state, bisa dilihat & dilewati lewat state pecah** | §4.2B, `docs/art/window-states-spec.png` |
 | 29 | **Tes pertama di engine:** 4 error parser diperbaiki + lint diperkuat | §21B, `game/README.md` |
 | 30 | **Target engine 4.7.2:** features bump, `scale_mode=integer`, pixel snap yang sebelumnya hilang | §17, §21B, `game/project.godot` |
+| 31 | **Set sprite pemain v1: 150 frame digambar, atlas 480×120, dipakai engine** | §17.3B, `docs/art/player-character-sheet.png` |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -1224,6 +1225,39 @@ func apply_dir(dir: Vector2, anim_base: String) -> void:
 | interact | 3 | 8 | Looting, buka pintu, tidur |
 
 **Variasi pemain tanpa biaya seni baru:** palet jaket 3 varian (teal default, oranye, abu) lewat `ShaderMaterial` palette swap. Ini memberi "3 survivor" tanpa menggambar ulang satu frame pun.
+
+### 17.3B Set Final v1 — Sudah Ada, Bukan Template
+
+Pemain sudah punya set lengkap: **150 frame digambar** (30 × 5 arah), atlas `480×120`, dipakai langsung oleh `SpriteFactory.player_frames()`. Generator: `tools/make_player_sprites.py`. Lembar review: `docs/art/player-character-sheet.png` dan `docs/art/player-sheet-final.png`.
+
+**Keputusan seni yang mengikat karakter lain** (dipakai juga untuk zombie & NPC, supaya gaya konsisten):
+
+| Keputusan | Nilai | Alasan |
+|---|---|---|
+| Arah cahaya | **dari atas**, bukan kiri-atas | Baris E/SE dipakai juga sebagai W/SW lewat `flip_h`. Cahaya dari kiri akan terbalik saat mirror dan karakter terbaca berbeda. Ini konsekuensi langsung dari strategi mirror §17.3, bukan selera. |
+| Kepala | **6 px**, bahu 8 px (rasio 0,75) | Wajah 5 px menyisakan 1 px di antara kedua mata — pada 320×180 itu terbaca seperti topeng/pelindung mata. |
+| Tangan & sepatu | 1 nada lebih terang dari lengan/kaki | Menandai ujung anggota badan tanpa menambah outline (yang akan menebalkan siluet 14 px). |
+| Pemisah bagian | **selout** 1 px (nada gelap di tepi dalam) | Tanpa selout, lengan dan badan menyatu jadi satu blok. |
+| Simetri | **wajib** — tidak ada tas selempang / tambalan satu sisi | Detail asimetris membatalkan baris mirror, biaya naik ±60% (§17.3). |
+| Palet | **26 warna**, 3 langkah per material | Batas §17.1: 32 global; tanpa anti-aliasing, tanpa gradien halus. |
+
+**Hasil uji keterbacaan (dicek di zoom 20×, bukan selera):**
+
+```text
+□ Siluet terbaca tanpa warna (teal jadi abu-abu)?        → YA, bahu vs pinggang berbeda
+□ Mata terbaca terpisah di wajah 6 px?                  → YA (2 px jarak)
+□ Arah hadap terbaca dari siluet saja (E vs N)?         → YA (hidung + tas di punggung)
+□ Dua kaki terpisah, tidak jadi satu balok?             → YA (celah 1 px + selout)
+□ Tas terbaca sebagai tas, bukan bongkahan?             → YA di N/NE/E; hanya tali di S/SE
+□ Ada piksel yang menyentuh tepi sel (memotong siluet)? → TIDAK
+```
+
+**Yang belum ada di v1 — jangan dianggap selesai:**
+
+1. Transisi `death` dan `dodge` masih pose tunggal; belum di-keyframe per frame seperti walk.
+2. Belum ada varian `hurt` yang berbeda per arah serangan.
+3. Palette swap oranye/abu (§17.3) belum dibuat, tapi tinggal mengganti huruf `j/J/k` di generator.
+4. Belum ada senjata di tangan — sesuai §17.1, senjata adalah node terpisah yang berputar bebas.
 
 ### 17.4 Sprite Zombie
 

@@ -1,10 +1,10 @@
 class_name SpriteFactory
 extends RefCounted
 ## Membangun SpriteFrames dari atlas 8 arah di runtime.
-## Atlas dibuat oleh tools/make_greybox_assets.py: 5 baris digambar (S, SE, E, NE, N),
+## Atlas pemain dibuat oleh tools/make_player_sprites.py (480x120, 30 kolom x 5 baris).
 ## 3 arah sisanya = mirror (flip_h) sesuai §17.3.
 
-const PLAYER_ATLAS := "res://assets/generated/player.png"
+const PLAYER_ATLAS := "res://assets/sprites/player.png"   # set final v1 (150 frame digambar)
 const WALKER_ATLAS := "res://assets/generated/walker.png"
 
 const DIRS5 := ["s", "se", "e", "ne", "n"]
