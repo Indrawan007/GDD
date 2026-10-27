@@ -142,20 +142,20 @@ func _spawn_player() -> void:
 	var rect := RectangleShape2D.new()
 	rect.size = Vector2(10, 10)                     # collision 10×10 di kaki (§17.3)
 	shape.shape = rect
-	shape.position = Vector2(0, -5)
+	shape.position = Vector2(0, -5)                # collider 12x10 di kaki (§17.3)
 	pl.add_child(shape)
 
 	var shadow := Sprite2D.new()
 	shadow.name = "Shadow"
 	shadow.texture = load("res://assets/generated/shadow.png")
-	shadow.position = Vector2(0, -2)                # offset (0,−2) (§17.12)
+	shadow.position = Vector2(0, -1)                # offset (0,−1) (§17.12)
 	shadow.z_index = -1
 	pl.add_child(shadow)
 
 	var sprite := AnimatedSprite2D.new()
 	sprite.name = "Sprite"
 	sprite.sprite_frames = SpriteFactory.player_frames()
-	sprite.offset = Vector2(0, -11)                 # pivot (8,23) → kaki di origin
+	sprite.offset = Vector2(0, -15)                 # pivot (12,31) → kaki di origin
 	sprite.animation = &"idle_s"
 	pl.add_child(sprite)
 
@@ -164,7 +164,7 @@ func _spawn_player() -> void:
 	weapon.points = PackedVector2Array([Vector2(2, 0), Vector2(12, 0)])
 	weapon.width = 2.0
 	weapon.default_color = Color(0.85, 0.82, 0.7)
-	weapon.position = Vector2(0, -10)
+	weapon.position = Vector2(0, -13)
 	pl.add_child(weapon)
 
 	var cam := Camera2D.new()
@@ -272,7 +272,7 @@ func _spawn_zombie(pos: Vector2) -> void:
 	var rect := RectangleShape2D.new()
 	rect.size = Vector2(10, 10)
 	shape.shape = rect
-	shape.position = Vector2(0, -5)
+	shape.position = Vector2(0, -5)                # collider 12x10 di kaki (§17.3)
 	z.add_child(shape)
 
 	var shadow := Sprite2D.new()

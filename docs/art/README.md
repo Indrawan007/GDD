@@ -43,7 +43,7 @@ Pemain sudah punya set lengkap: **150 frame digambar** (30 frame × 5 arah), dig
 
 0. **Baca `projection-3q-spec.png` lebih dulu.** Proyeksi dikunci top-down 3/4: tile 16×16, muka dinding 10 px, atap di-fade, shadow 32×14, **tanpa** perspective scaling. Aset yang melanggar tes penerimaan §17.12 dikembalikan, bukan ditambal di engine.
 
-1. **Sel = 16×24 px** untuk semua karakter. Jangan mengubah ukuran sel; semua kode animasi mengasumsikan grid ini.
+1. **Sel = 24×32 px** untuk semua karakter (v3.14). Pemain sudah memakai ukuran ini; zombie & NPC masih 16×24 dan **harus** dinaikkan sebelum masuk build — dua resolusi karakter di satu layar langsung terlihat.
 2. **Pivot `(8, 23)`** — 1 px di atas tepi bawah sel. Tanda `+` hijau di lembar guide menunjuk titik ini. Kaki karakter menyentuh baseline.
 3. **8 arah, digambar 5 baris.** Baris `S, SE, E, NE, N` digambar; `NW, W, SW` diberi pola garis miring bertanda `MIRROR` — **jangan digambar**, dibuat otomatis oleh `flip_h` di runtime. Pemetaan: `SE→SW`, `E→W`, `NE→NW`. Hemat 37,5% frame.
 4. **Nama animasi di `SpriteFrames`:** `walk_s`, `walk_se`, `walk_e`, `walk_ne`, `walk_n`, `attack_melee_s`, `death_e` — arah di **akhir** nama. Saat runtime, tiga arah mirror memakai nama arah sumbernya + `flip_h`.
@@ -71,7 +71,7 @@ BARIS (semua karakter):
   5 NW · 6 W · 7 SW               → MIRROR (flip_h), jangan digambar
 ```
 
-Rumus region di Godot: `Rect2(kolom × 16, baris × 24, 16, 24)` — berlaku untuk semua canvas 16×24 (Tank 24×32 punya sheet sendiri).
+Rumus region di Godot: `Rect2(kolom × 24, baris × 32, 24, 32)` — berlaku untuk semua canvas 16×24 (Tank 24×32 punya sheet sendiri).
 
 ## Import Godot 4.7.2
 

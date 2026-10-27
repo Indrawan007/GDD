@@ -1,37 +1,33 @@
 #!/usr/bin/env python3
 """
-Set sprite pemain — The End Has Come  (v2: proporsi manusia)
-=============================================================
+Set sprite pemain — The End Has Come  (v3: kanvas 24x32)
+========================================================
 
-Kontrak §17.3: kanvas 16x24, pivot (8,23), 30 frame x 5 arah = 150 frame digambar.
+KENAPA NAIK DARI 16x24
+----------------------
+Referensi yang diberikan (288x52, karakter ~51 px tinggi) punya proporsi 1:4 —
+sama seperti versi kita — tetapi **2x resolusi**. Itu sumber seluruh selisihnya:
+di 16x24, wajah hanya dapat 3 baris; di 24x32 dapat 5-6 baris, dan itu perbedaan
+antara "wajah terbaca" dan "wajah tidak ada".
 
-PROPORSI — diambil dari foto model berdiri, bukan selera
---------------------------------------------------------
-Diukur dari referensi full-body (lihat docs/art/README.md):
-    tinggi figur            1063 px
-    tinggi kepala            ~144 px   -> 7,4 kepala
-    lebar bahu              240 px
-    lebar kepala             96 px    -> bahu = 2,5 x kepala
-    panjang kaki (crotch)   ~430 px   -> 40-45% tinggi
+Kanvas 24x32 = 1,5 tile x 2 tile @ tile 16. Aturan grid tetap; hanya sel yang
+membesar 2x luasnya (768 px vs 384 px).
 
-Kanvas kita 24 px. Kepala 3 px (24/7,4) mustahil diberi wajah, jadi kepala
-dipaksa 5 px = 4,8 kepala. Sisa tinggi dibagi mengikuti rasio asli:
+PROPORSI (24x32)
+----------------
+    kepala  8 baris  (25%)   wajah 6 baris: rambut x2, dahi, mata, hidung, mulut
+    leher   1 baris  ( 3%)
+    badan   9 baris  (28%)
+    ikat    1 baris
+    kaki   13 baris  (41%)   <- sama dengan manusia (41,5%)
 
-    kepala   5 px  (21%)   [asli 13% — ini satu-satunya penyimpangan besar]
-    leher    1 px  ( 4%)
-    badan    7 px  (29%)   [asli 33%]
-    kaki    10 px  (42%)   [asli 42-45%]  <- yang sebelumnya cuma 8 px
-
-Sebelumnya: kepala 6, kaki 8 = 1:3,8 kepala. Itu chibi. Sekarang 1:4,8 dengan
-kaki 42% tinggi — mendekati manusia, dan wajah masih terbaca.
-
-ATURAN TEKNIS
+ATURAN GAMBAR
 -------------
-1. Cahaya dari ATAS (bukan kiri-atas) supaya baris E/SE aman saat di-flip_h.
-2. Bob hanya ke BAWAH (0 / +1). Kalau ke atas, kepala menyentuh baris 0.
-3. Kepala 6 px: wajah 5 px hanya menyisakan 1 px antar mata -> terbaca topeng.
-4. Selout 1 px memisahkan lengan/badan dan kaki/kaki.
-5. Simetris wajib; detail asimetris membatalkan baris mirror.
+1. Cahaya dari ATAS (baris E/SE juga dipakai sebagai W/SW lewat flip_h).
+2. Ramp 4 langkah per material, tanpa anti-aliasing.
+3. Outline 1 px di sekeliling siluet; tepi dalam memakai selout (ramp tergelap).
+4. Simetris; detail asimetris membatalkan baris mirror.
+5. Baris ditulis lewat R() (run-length) supaya jumlah 24 px tidak pernah salah hitung.
 
 Jalankan: python3 tools/make_player_sprites.py
 """
@@ -44,263 +40,330 @@ from PIL import Image, ImageDraw, ImageFont
 
 # ------------------------------------------------------------------ palet ----
 PAL = {
-    "s": (170, 118, 78), "S": (126, 82, 52), "h": (206, 154, 108),  # kulit
-    "a": (62, 52, 45),  "A": (40, 33, 28),  "H": (88, 74, 62),     # rambut
-    "j": (38, 104, 98), "J": (24, 68, 66),  "k": (56, 140, 128),   # jaket teal
-    "p": (70, 76, 60),  "P": (46, 51, 40),  "q": (90, 98, 76),     # celana
-    "b": (96, 70, 52),  "B": (58, 42, 32),  "c": (124, 94, 68),    # sepatu
-    "n": (90, 86, 62),  "N": (62, 59, 41),  "m": (114, 110, 80),   # tas kanvas
-    "t": (60, 52, 40),  "T": (38, 32, 24),                         # tali tas
-    "w": (92, 68, 46),  "W": (58, 42, 28),                         # ikat pinggang
-    "v": (172, 152, 88),                                           # gesper
-    "u": (128, 134, 142),                                          # logam
-    "e": (26, 22, 20),                                             # mata
-    "y": (120, 74, 54),                                            # mulut
-    "g": (34, 37, 31),                                             # kotoran
-    ".": None,
+    # rambut (4 langkah)
+    "a0": (26, 21, 18), "a1": (40, 32, 27), "a2": (58, 46, 38), "a3": (80, 65, 52),
+    # kulit
+    "s0": (116, 72, 45), "s1": (152, 98, 63), "s2": (185, 129, 88), "s3": (212, 162, 118),
+    # jaket teal (aksen pemain, dilarang dipakai di lingkungan)
+    "j0": (14, 48, 47), "j1": (23, 72, 69), "j2": (35, 101, 93), "j3": (55, 139, 125),
+    "j4": (88, 178, 156),
+    # celana
+    "p0": (31, 34, 26), "p1": (45, 50, 38), "p2": (62, 68, 51), "p3": (82, 90, 68),
+    # sepatu
+    "b0": (34, 25, 19), "b1": (56, 41, 30), "b2": (84, 62, 44),
+    # tas kanvas
+    "n0": (48, 45, 30), "n1": (72, 66, 45), "n2": (96, 88, 60), "n3": (120, 110, 78),
+    # ikat pinggang / logam
+    "w0": (38, 27, 18), "w1": (66, 47, 31), "v": (170, 150, 90), "u": (130, 136, 144),
+    # wajah
+    "e": (18, 16, 15), "m": (104, 60, 44),
 }
-OUTLINE = (21, 24, 28, 255)
+OUTLINE = (19, 22, 26, 255)
 
-W, H = 16, 24
+W, H = 24, 32
+FEET_Y = 31
 
 
-def rgba(c):
-    return (c[0], c[1], c[2], 255)
+PAD_LOG = []
+
+
+def R(*pairs) -> list:
+    """Bangun satu baris dari (token, jumlah), lalu pusatkan ke lebar kanvas.
+
+    Kalau jumlah token < W, sisa piksel diisi '.' secara simetris (kiri/kanan).
+    Kalau lebih, itu bug dan harus diperbaiki — bukan dipotong diam-diam.
+    """
+    out = []
+    for ch, n in pairs:
+        out += [ch] * n
+    if len(out) < W:
+        PAD_LOG.append(len(out))
+        gap = W - len(out)
+        left = gap // 2
+        out = ["."] * left + out + ["."] * (gap - left)
+    assert len(out) == W, f"baris = {len(out)} px, harus {W}: {out}"
+    return out
 
 
 # ------------------------------------------------------------------- art -----
-# 13 baris = y1..y13. Kaki (y14..y23) dibuat prosedural oleh leg().
-# Skema: terang di baris atas tiap bentuk, gelap di baris bawah, selout di tepi dalam.
+# Baris 1..19 ditulis tangan. Kaki (20..31) prosedural.
 
 BASE = {}
 
-# Kepala 6 baris (1-6). Baris 3 = DAHI, wajib ada: tanpa dahi, mata menempel
-# langsung di bawah rambut dan keduanya menyatu jadi satu blok gelap.
-# Sisi mata memakai kulit (bukan rambut) supaya mata tidak menyatu dengan rambut.
-
+# ============================== S (depan) ===================================
 BASE["s"] = [
-    "......HHHH......",  # 1  atap rambut
-    ".....HaaaaH.....",  # 2  rambut
-    ".....SssSss.....",  # 3  dahi
-    ".....sesseS.....",  # 4  mata x6 & x9
-    ".....sshsss.....",  # 5  hidung terang 2 px
-    "......syys......",  # 6  mulut + dagu
-    "..kkkkkkkkkkkk..",  # 7  bahu menyambung ke lengan (bukan kaus tanpa lengan)
-    "....JtjjjjtJ....",  # 8  dada + tali tas
-    "....JtjjjjtJ....",  # 9
-    "....JjjjjjjJ....",  # 10 pinggang
-    "....JjjjjjjJ....",  # 11
-    ".....JjjjjJ.....",  # 12 pinggang menyempit
-    ".....wwvvww.....",  # 13 ikat pinggang + gesper
+    # --- kepala: 8 baris
+    R((".", 9), ("a2", 6), (".", 9)),                             # 1 atap rambut
+    R((".", 8), ("a1", 1), ("a2", 6), ("a1", 1), (".", 8)),       # 2
+    R((".", 8), ("a1", 1), ("a3", 1), ("s2", 4), ("a3", 1), ("a1", 1), (".", 8)),  # 3 poni
+    R((".", 8), ("s1", 1), ("s3", 6), ("s1", 1), (".", 8)),       # 4 dahi
+    R((".", 8), ("s1", 1), ("s2", 1), ("e", 1), ("s2", 2), ("e", 1), ("s2", 1),
+      ("s1", 1), (".", 8)),                                       # 5 mata
+    R((".", 8), ("s1", 1), ("s2", 2), ("s3", 2), ("s2", 2), ("s1", 1), (".", 8)),  # 6 hidung
+    R((".", 8), ("s1", 1), ("s2", 1), ("s1", 1), ("m", 2), ("s1", 1), ("s2", 1),
+      ("s1", 1), (".", 8)),                                       # 7 mulut
+    R((".", 9), ("s1", 1), ("s2", 4), ("s1", 1), (".", 9)),       # 8 dagu
+    # --- leher
+    R((".", 10), ("s1", 4), (".", 10)),                           # 9
+    # --- badan: bahu 14 px (x5..x18)
+    R((".", 4), ("j3", 16), (".", 4)),                            # 10 bahu 16 px
+    R((".", 4), ("j1", 1), ("j2", 1), ("j3", 2), ("j2", 1), ("n1", 1), ("j2", 1),
+      ("j0", 2), ("j2", 1), ("n1", 1), ("j2", 1), ("j3", 2), ("j2", 1),
+      ("j1", 1), (".", 4)),                                       # 11 dada + tali
+    R((".", 4), ("j1", 1), ("j2", 1), ("j3", 2), ("j2", 1), ("n1", 1), ("j2", 1),
+      ("j0", 2), ("j2", 1), ("n1", 1), ("j2", 1), ("j3", 2), ("j2", 1),
+      ("j1", 1), (".", 4)),                                       # 12
+    R((".", 4), ("n0", 1), ("j2", 1), ("j3", 1), ("j2", 1), ("n1", 1), ("j2", 1),
+      ("j0", 2), ("j2", 1), ("n1", 1), ("j2", 1), ("j3", 1), ("j2", 1),
+      ("n0", 1), (".", 4)),                                       # 13 rusuk ransel
+    R((".", 4), ("n0", 1), ("j2", 1), ("j3", 1), ("j2", 1), ("n1", 1), ("j2", 1),
+      ("j0", 2), ("j2", 1), ("n1", 1), ("j2", 1), ("j3", 1), ("j2", 1),
+      ("n0", 1), (".", 4)),                                       # 14
+    R((".", 4), ("j1", 1), ("j2", 1), ("j2", 1), ("j2", 1), ("n1", 1), ("j2", 1),
+      ("j0", 2), ("j2", 1), ("n1", 1), ("j2", 1), ("j2", 1), ("j2", 1),
+      ("j1", 1), (".", 4)),                                       # 15
+    R((".", 5), ("j1", 1), ("j2", 12), ("j1", 1), (".", 5)),      # 16 pinggang
+    R((".", 5), ("j0", 1), ("j1", 12), ("j0", 1), (".", 5)),      # 17 ujung jaket
+    R((".", 5), ("w1", 14), (".", 5)),                            # 18 ikat pinggang
+    R((".", 5), ("w0", 5), ("v", 4), ("w0", 5), (".", 5)),        # 19 gesper
 ]
 
+# ============================== SE (3/4 depan) ==============================
 BASE["se"] = [
-    "......HHHH......",
-    ".....HaaaaH.....",
-    ".....SssSss.....",
-    ".....sesseS.....",
-    ".....sshsss.....",
-    "......syys......",
-    "..kkkkkkkkkkkk..",
-    "....JtjjjjtJ....",
-    "....JtjjjjtJ....",
-    "....JjjjjjjJ....",
-    "....JjjjjjjJ....",
-    ".....JjjjjJ.....",
-    ".....wwvvww.....",
+    R((".", 9), ("a2", 6), (".", 9)),
+    R((".", 8), ("a1", 1), ("a2", 6), ("a1", 1), (".", 8)),
+    R((".", 8), ("a1", 1), ("a3", 1), ("s2", 4), ("a3", 1), ("a1", 1), (".", 8)),
+    R((".", 8), ("s1", 1), ("s3", 6), ("s1", 1), (".", 8)),
+    R((".", 8), ("s1", 1), ("s2", 1), ("e", 1), ("s2", 2), ("e", 1), ("s2", 1),
+      ("s1", 1), (".", 8)),
+    R((".", 8), ("s1", 1), ("s2", 2), ("s3", 2), ("s2", 2), ("s1", 1), (".", 8)),
+    R((".", 8), ("s1", 1), ("s2", 1), ("s1", 1), ("m", 2), ("s1", 1), ("s2", 1),
+      ("s1", 1), (".", 8)),
+    R((".", 9), ("s1", 1), ("s2", 4), ("s1", 1), (".", 9)),
+    R((".", 10), ("s1", 4), (".", 10)),
+    R((".", 4), ("j3", 16), (".", 4)),                            # 10 bahu 16 px
+    R((".", 4), ("j1", 1), ("j2", 1), ("j3", 2), ("j2", 1), ("n1", 1), ("j2", 1),
+      ("j0", 2), ("j2", 1), ("n1", 1), ("j2", 1), ("j3", 2), ("j2", 1),
+      ("j1", 1), (".", 4)),                                       # 11 dada + tali
+    R((".", 4), ("j1", 1), ("j2", 1), ("j3", 2), ("j2", 1), ("n1", 1), ("j2", 1),
+      ("j0", 2), ("j2", 1), ("n1", 1), ("j2", 1), ("j3", 2), ("j2", 1),
+      ("j1", 1), (".", 4)),                                       # 12
+    R((".", 4), ("n0", 1), ("j2", 1), ("j3", 1), ("j2", 1), ("n1", 1), ("j2", 1),
+      ("j0", 2), ("j2", 1), ("n1", 1), ("j2", 1), ("j3", 1), ("j2", 1),
+      ("n0", 1), (".", 4)),                                       # 13 rusuk ransel
+    R((".", 4), ("n0", 1), ("j2", 1), ("j3", 1), ("j2", 1), ("n1", 1), ("j2", 1),
+      ("j0", 2), ("j2", 1), ("n1", 1), ("j2", 1), ("j3", 1), ("j2", 1),
+      ("n0", 1), (".", 4)),                                       # 14
+    R((".", 4), ("j1", 1), ("j2", 1), ("j2", 1), ("j2", 1), ("n1", 1), ("j2", 1),
+      ("j0", 2), ("j2", 1), ("n1", 1), ("j2", 1), ("j2", 1), ("j2", 1),
+      ("j1", 1), (".", 4)),                                       # 15
+    R((".", 5), ("j1", 1), ("j2", 12), ("j1", 1), (".", 5)),      # 16 pinggang
+    R((".", 5), ("j0", 1), ("j1", 12), ("j0", 1), (".", 5)),      # 17 ujung jaket
+    R((".", 5), ("w1", 14), (".", 5)),                            # 18 ikat pinggang
+    R((".", 5), ("w0", 5), ("v", 4), ("w0", 5), (".", 5)),        # 19 gesper
 ]
 
-# Profil: mata tunggal di x7, hidung menonjol ke kanan di x9-x10.
+# ============================== E (profil kanan) ============================
+# Kepala bergeser 1 px ke kanan; hidung menonjol di x16; tas terlihat di kiri.
 BASE["e"] = [
-    "......HHHH......",
-    ".....HaaaaH.....",
-    ".....Asssss.....",
-    ".....Aseshs.....",
-    ".....sshhss.....",
-    "......syys......",
-    ".....kkkkkk.....",
-    "..nmmjjjjjj.....",
-    "..nmmjjjjjj.....",
-    "..nmmjjjjjJ.....",
-    "..NNNjjjjjJ.....",
-    "..NNNJJjjJJ.....",
-    "..NNNwwvvww.....",
+    R((".", 10), ("a2", 6), (".", 8)),
+    R((".", 9), ("a1", 1), ("a2", 6), ("a1", 1), (".", 7)),
+    R((".", 9), ("a1", 1), ("a3", 1), ("s2", 4), ("a3", 1), (".", 8)),
+    R((".", 9), ("s1", 1), ("s3", 6), (".", 8)),
+    R((".", 9), ("s1", 1), ("s2", 1), ("e", 1), ("s2", 3), (".", 9)),
+    R((".", 9), ("s1", 1), ("s2", 2), ("s3", 3), (".", 9)),        # hidung menonjol
+    R((".", 9), ("s1", 1), ("s1", 1), ("m", 2), ("s1", 1), (".", 10)),
+    R((".", 10), ("s1", 1), ("s2", 3), ("s1", 1), (".", 9)),
+    R((".", 11), ("s1", 3), (".", 10)),
+    R((".", 7), ("j3", 11), (".", 6)),                             # bahu (lebih sempit di profil)
+    R((".", 5), ("n2", 3), ("j2", 1), ("j3", 8), ("j1", 1), (".", 6)),
+    R((".", 5), ("n1", 3), ("j2", 1), ("j3", 7), ("j2", 1), (".", 7)),
+    R((".", 5), ("n1", 3), ("j2", 1), ("j3", 6), ("j2", 2), (".", 7)),
+    R((".", 5), ("n0", 3), ("j1", 1), ("j2", 6), ("j1", 2), (".", 7)),
+    R((".", 5), ("n0", 3), ("j1", 1), ("j2", 5), ("j1", 2), (".", 8)),
+    R((".", 5), ("n0", 3), ("j1", 1), ("j2", 5), ("j1", 1), (".", 8)),
+    R((".", 6), ("w1", 7), (".", 11)),
+    R((".", 6), ("w0", 3), ("v", 2), ("w0", 2), (".", 11)),
+    R((".", 6), ("w0", 7), (".", 11)),
 ]
 
+# ============================== NE (3/4 belakang) ===========================
 BASE["ne"] = [
-    "......HHHH......",
-    ".....HaaaaH.....",
-    ".....HaaaaH.....",
-    ".....AaaaaA.....",
-    "......AaaA......",
-    ".......SS.......",
-    "...kkkkkkkkkk...",
-    "...jmNNNNNNmj...",
-    "...jmNttttNmj...",
-    "...jmNNNNNNmj...",
-    "....JmNNNNmJ....",
-    ".....JmNNmJ.....",
-    ".....wwvvww.....",
+    R((".", 9), ("a2", 6), (".", 9)),
+    R((".", 8), ("a1", 1), ("a2", 6), ("a1", 1), (".", 8)),
+    R((".", 8), ("a1", 1), ("a2", 6), ("a1", 1), (".", 8)),
+    R((".", 8), ("a1", 1), ("a2", 6), ("a1", 1), (".", 8)),
+    R((".", 8), ("a1", 2), ("a2", 4), ("a1", 2), (".", 8)),
+    R((".", 9), ("a1", 1), ("a2", 4), ("a1", 1), (".", 9)),
+    R((".", 10), ("a1", 4), (".", 10)),
+    R((".", 10), ("s0", 4), (".", 10)),                           # leher (belakang)
+    R((".", 4), ("j3", 16), (".", 4)),                            # 10 bahu
+    R((".", 4), ("j1", 1), ("n1", 1), ("n3", 12), ("n1", 1), ("j1", 1), (".", 4)),
+    R((".", 4), ("j1", 1), ("n1", 1), ("n3", 12), ("n1", 1), ("j1", 1), (".", 4)),
+    R((".", 4), ("j1", 1), ("n1", 1), ("n3", 4), ("u", 4), ("n3", 4), ("n1", 1),
+      ("j1", 1), (".", 4)),                                       # 13 gesper tas
+    R((".", 4), ("j1", 1), ("n1", 1), ("n2", 12), ("n1", 1), ("j1", 1), (".", 4)),
+    R((".", 4), ("j1", 1), ("n1", 1), ("n2", 12), ("n1", 1), ("j1", 1), (".", 4)),
+    R((".", 5), ("j1", 1), ("n0", 12), ("j1", 1), (".", 5)),
+    R((".", 5), ("j0", 1), ("j1", 12), ("j0", 1), (".", 5)),
+    R((".", 5), ("w1", 14), (".", 5)),
+    R((".", 5), ("w0", 5), ("v", 4), ("w0", 5), (".", 5)),
 ]
 
+# ============================== N (punggung) ================================
 BASE["n"] = [
-    "......HHHH......",
-    ".....HaaaaH.....",
-    ".....HaaaaH.....",
-    ".....AaaaaA.....",
-    "......AaaA......",
-    ".......SS.......",
-    "..kkkkkkkkkkkk..",
-    "....jmNNNNmj....",
-    "....jmNttNmj....",
-    "....jmNNNNmj....",
-    "....jmNNNNmj....",
-    ".....JmNNmJ.....",
-    ".....wwvvww.....",
+    R((".", 9), ("a2", 6), (".", 9)),
+    R((".", 8), ("a1", 1), ("a2", 6), ("a1", 1), (".", 8)),
+    R((".", 8), ("a1", 1), ("a2", 6), ("a1", 1), (".", 8)),
+    R((".", 8), ("a1", 1), ("a2", 6), ("a1", 1), (".", 8)),
+    R((".", 8), ("a1", 2), ("a2", 4), ("a1", 2), (".", 8)),
+    R((".", 9), ("a1", 1), ("a2", 4), ("a1", 1), (".", 9)),
+    R((".", 10), ("a1", 4), (".", 10)),
+    R((".", 10), ("s0", 4), (".", 10)),
+    R((".", 4), ("j3", 16), (".", 4)),                            # 10 bahu
+    R((".", 4), ("j1", 1), ("n1", 1), ("n3", 12), ("n1", 1), ("j1", 1), (".", 4)),
+    R((".", 4), ("j1", 1), ("n1", 1), ("n3", 12), ("n1", 1), ("j1", 1), (".", 4)),
+    R((".", 4), ("j1", 1), ("n1", 1), ("n3", 4), ("u", 4), ("n3", 4), ("n1", 1),
+      ("j1", 1), (".", 4)),                                       # 13 gesper tas
+    R((".", 4), ("j1", 1), ("n1", 1), ("n2", 12), ("n1", 1), ("j1", 1), (".", 4)),
+    R((".", 4), ("j1", 1), ("n1", 1), ("n2", 12), ("n1", 1), ("j1", 1), (".", 4)),
+    R((".", 5), ("j1", 1), ("n0", 12), ("j1", 1), (".", 5)),
+    R((".", 5), ("j0", 1), ("j1", 12), ("j0", 1), (".", 5)),
+    R((".", 5), ("w1", 14), (".", 5)),
+    R((".", 5), ("w0", 5), ("v", 4), ("w0", 5), (".", 5)),
 ]
 
-# --- tubuh tergeletak (death frame 4-5) --------------------------------------
-PRONE = {
-    "s": [
-        "................", "................", "................", "................",
-        "................", "................", "................", "................",
-        "................", "................", "................", "................",
-        "................", "................", "................", "................",
-        "................", "................",
-        "....HHHH........",
-        "...HaaaaH.......",
-        "....HasssHjjjjj.",
-        "...jjjjjjjjjpp..",
-        "..jjjjjjjjjjpp..",
-    ],
-    "n": [
-        "................", "................", "................", "................",
-        "................", "................", "................", "................",
-        "................", "................", "................", "................",
-        "................", "................", "................", "................",
-        "................", "................",
-        "....HHHH........",
-        "...HaaaaH.......",
-        "....HaaaaHjjjjj.",
-        "...jjjjjjjjjpp..",
-        "..NNNNNNNNNNpp..",
-    ],
-}
-
-# --- posisi meringkuk (dodge frame 1-2) --------------------------------------
-TUCK = [
-    "................", "................", "................", "................",
-    "................", "................", "................", "................",
-    "................", "................", "................", "................",
-    "................",
-    "......HHHH......",
-    ".....HaaaaH.....",
-    "....AjjjjjA.....",
-    "...jjjjjjjjp....",
-    "...jjjjjjjjpp...",
-    "...jjjjjjjjppb..",
-    "....wwwwpppb....",
-    ".....bbbb.......",
-    "................",
-    "................",
+# --- tubuh tergeletak (death 4-5) -------------------------------------------
+PRONE = [
+    R((".", 24)),
+] * 19 + [
+    R((".", 3), ("a2", 5), (".", 16)),
+    R((".", 2), ("a1", 1), ("a3", 4), ("a1", 1), (".", 16)),
+    R((".", 3), ("s2", 4), ("j1", 1), ("j3", 6), ("j2", 4), (".", 6)),
+    R((".", 2), ("j1", 2), ("j3", 6), ("j2", 4), ("p2", 4), ("p1", 2), (".", 4)),
+    R((".", 2), ("p1", 4), ("p2", 3), ("b1", 4), (".", 11)),
 ]
 
-# ------------------------------------------------------------- komposisi ----
 
-def put(mat, x, y, ch):
-    if ch in (".", None):
-        return
-    if 0 <= x < W and 0 <= y < H:
-        mat[(x, y)] = ch
+def legs(mat, hip_left, y_top, dx_l, lift_l, dx_r, lift_r, toe_l, toe_r):
+    """Dua kaki 13 baris: paha 3 px, betis 2 px, sepatu 3 px.
 
+    Jarak antar-hip 7 px dan lebar 3 px membuat pasangan kaki simetris tepat pada
+    sumbu x=11,5 — sumbu cermin kanvas 24 px. Kalau tidak simetris, flip_h ke arah
+    W/SW akan menggeser karakter 1 px dan jalannya terlihat pincang.
 
-def stamp(mat, rows, y0, x0=0):
-    for i, row in enumerate(rows):
-        assert len(row) == W, f"baris harus {W} char: {row!r} ({len(row)})"
-        for x, ch in enumerate(row):
-            put(mat, x0 + x, y0 + i, ch)
-
-
-def leg(mat, x_hip, y_top, dx, lift, inner=1, toe=0):
-    """Kaki 10 baris: paha, lutut, betis, pergelangan, sepatu.
-
-    Lebar 3 -> 2 (betis menyempit), sepatu 3 px + ujung menjulur ke arah luar.
-    inner = sisi menghadap kaki satunya, diberi nada gelap (selout).
+    Celah itu wajib: tanpa celah, dua kaki 3 px yang bersebelahan terbaca sebagai
+    satu balok selebar 8 px, dan seluruh siluet kehilangan bentuk manusia.
     """
-    foot_y = 23 - lift
-    ankle_y = foot_y - 2
-    knee_y = min(max(y_top + 4, y_top + 1), ankle_y - 2)
+    for (hip, dx, lift, toe, inner) in ((hip_left, dx_l, lift_l, toe_l, 1),
+                                        (hip_left + 7, dx_r, lift_r, toe_r, -1)):
+        foot_y = FEET_Y - lift
+        ankle_y = foot_y - 2
+        knee_y = y_top + 5
+        for y in range(y_top, ankle_y):
+            if y <= knee_y:
+                t = (y - y_top) / max(1, knee_y - y_top)
+                xc = hip + dx * 0.3 * t
+                w = 3
+            else:
+                t = (y - knee_y) / max(1, ankle_y - knee_y)
+                xc = hip + dx * (0.3 + 0.7 * t)
+                w = 2
+            xc = int(round(xc))
+            for k in range(w):
+                edge = (inner > 0 and k == w - 1) or (inner < 0 and k == 0)
+                tone = "p1" if edge else "p2"
+                if k == 1 and w == 3:
+                    tone = "p3"                      # highlight paha depan
+                mat[(min(max(xc + k, 1), W - 2), y)] = tone
+        # sepatu chunky: 4 px, sol 2 baris
+        bx = int(round(hip + dx))
+        for y in range(ankle_y, foot_y + 1):
+            for k in range(4):
+                x = min(max(bx - 1 + k, 1), W - 2)
+                if y >= foot_y - 1:
+                    mat[(x, y)] = "b0"
+                elif y == ankle_y:
+                    mat[(x, y)] = "b2"
+                else:
+                    mat[(x, y)] = "b1"
+        if toe:
+            tx = bx + 3 if toe > 0 else bx - 2
+            mat[(min(max(tx, 1), W - 2), foot_y)] = "b0"
+            mat[(min(max(tx, 1), W - 2), foot_y - 1)] = "b0"
 
-    def px_row(y, xc, width):
-        for k in range(width):
-            edge_in = (inner > 0 and k == width - 1) or (inner < 0 and k == 0)
-            put(mat, min(max(int(round(xc)) + k, 1), 14), y, "P" if edge_in else "p")
 
-    # paha
-    for y in range(y_top, knee_y + 1):
-        t = (y - y_top) / max(1, knee_y - y_top)
-        px_row(y, x_hip + dx * 0.25 * t, 3)
-    # betis menyempit ke pergelangan
-    for y in range(knee_y + 1, ankle_y):
-        t = (y - knee_y) / max(1, ankle_y - knee_y)
-        px_row(y, x_hip + dx * (0.25 + 0.55 * t), 3 if t < 0.5 else 2)
-    # pergelangan
-    px_row(ankle_y, x_hip + dx * 0.8, 2)
-
-    bx = int(round(x_hip + dx))
-    # sepatu: 3 px + tumit 1 px di belakang, ujung menjulur ke arah hadap
-    for y in range(ankle_y + 1, foot_y):
-        for k in range(3):
-            put(mat, min(max(bx - 1 + k, 1), 14), y, "c" if y == ankle_y + 1 else "b")
-    for k in range(3):
-        put(mat, min(max(bx - 1 + k, 1), 14), foot_y, "B")
-    if toe:
-        tx = bx + 2 if toe > 0 else bx - 2
-        put(mat, min(max(tx, 1), 14), foot_y, "B")
-        put(mat, min(max(tx, 1), 14), foot_y - 1, "b")
-        # tumit
-        hx2 = bx - 2 if toe > 0 else bx + 2
-        put(mat, min(max(hx2, 1), 14), foot_y, "B")
-
-
-def arm(mat, shoulder, dx, dy, ext=0, length=9, inner=-1, tone="j"):
-    """Lengan 2 px dengan siku: bahu -> siku -> pergelangan -> tangan."""
+def arms(mat, shoulder, dx, dy, ext, length, tone_edge, hand_row=None):
+    """Lengan 3 px dengan siku; bahu -> siku -> pergelangan -> tangan."""
     sx, sy = shoulder
-    hx = min(max(sx + dx + ext, 2), 13)
-    hy = min(max(sy + dy + length, 9), 20)
-    elbow_x = (sx + hx) / 2.0
-    elbow_y = sy + (hy - sy) * 0.55
-
+    hx = min(max(sx + dx + ext, 2), W - 3)
+    hy = hand_row if hand_row else min(sy + dy + length, 26)
+    ex, ey = (sx + hx) / 2.0, sy + (hy - sy) * 0.55
     for y in range(sy, hy + 1):
-        if y <= elbow_y:
-            t = (y - sy) / max(1, elbow_y - sy)
-            xc = sx + (elbow_x - sx) * t
+        if y <= ey:
+            t = (y - sy) / max(1, ey - sy)
+            xc = sx + (ex - sx) * t
         else:
-            t = (y - elbow_y) / max(1, hy - elbow_y)
-            xc = elbow_x + (hx - elbow_x) * t
+            t = (y - ey) / max(1, hy - ey)
+            xc = ex + (hx - ex) * t
         xc = int(round(xc))
-        if y == sy:                       # kemiringan bahu: 1 px lebih ke dalam
-            xc += 1 if sx < 8 else -1
-        for k in range(2):
-            ch = "J" if y >= hy - 1 else tone
-            put(mat, min(max(xc + k, 1), 14), y, ch)
-    # tangan 2 px
-    for k in range(2):
-        put(mat, min(max(int(round(hx)) + k, 1), 14), hy, "s")
+        for k in range(3):
+            ch = tone_edge if k == 0 else ("j3" if k == 1 and y < sy + 4 else "j2")
+            if y >= hy:
+                ch = "s1" if k == 1 else "s0"
+            mat[(min(max(xc + k, 1), W - 2), y)] = ch
 
 
-def shade(mat):
-    """Shading ditulis tangan lewat huruf palet (lihat catatan di kepala berkas)."""
-    return mat
+def build(d, anim, f):
+    p = pose_state(anim, f)
+    mat = {}
+    if p["prone"]:
+        for i, row in enumerate(PRONE):
+            for x, ch in enumerate(row):
+                if ch != ".":
+                    mat[(x, i)] = ch
+        return finish(mat)
+
+    yb = 1 + p["bob"] + p["crouch"]
+    lt = 20 + p["bob"] + p["crouch"]
+
+    hip = 8 if d == "e" else 7
+    legs(mat, hip, lt, p["legL"][0], p["legL"][1], p["legR"][0], p["legR"][1],
+         1, 1 if d == "e" else 0)
+
+    # lengan jauh (di belakang badan) untuk arah punggung/profil
+    if d in ("e", "ne", "n"):
+        arms(mat, (16 if d != "n" else 17, 10 + p["bob"] + p["crouch"]),
+             p["armL"][0], p["armL"][1], 0, 11, "j0")
+
+    for i, row in enumerate(BASE[d]):
+        y = i + yb
+        for x, ch in enumerate(row):
+            if ch != ".":
+                mat[(x, y)] = ch
+
+    if d == "e":
+        arms(mat, (15, 10 + p["bob"] + p["crouch"]), p["armR"][0], p["armR"][1],
+             p["ext"], 11, "j0")
+    elif d == "n":
+        arms(mat, (5, 10 + p["bob"] + p["crouch"]), p["armL"][0], p["armL"][1], 0, 11, "j0")
+        arms(mat, (16, 10 + p["bob"] + p["crouch"]), p["armR"][0], p["armR"][1],
+             p["ext"], 11, "j0")
+    else:
+        arms(mat, (3, 10 + p["bob"] + p["crouch"]), p["armL"][0], p["armL"][1], 0, 11, "j0")
+        arms(mat, (18, 10 + p["bob"] + p["crouch"]), p["armR"][0], p["armR"][1],
+             p["ext"], 11, "j1")
+
+    return finish(mat)
 
 
-def render(mat):
+def finish(mat):
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     px = img.load()
     for (x, y), ch in mat.items():
         c = PAL.get(ch)
         if c:
-            px[x, y] = rgba(c)
+            px[x, y] = (c[0], c[1], c[2], 255)
     filled = set(mat.keys())
     for (x, y) in filled:
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
@@ -311,13 +374,10 @@ def render(mat):
 
 
 # ------------------------------------------------------------------ pose ----
-# CATATAN: bob hanya 0 atau +1 (turun). Bob negatif membuat kepala menyentuh
-# baris 0 dan siluet terpotong.
 
-def pose_for(anim, f):
-    p = dict(bob=0, crouch=0, lean=0, legL=(0, 0), legR=(0, 0),
-             armL=(0, 0), armR=(0, 0), ext=0, prone=False, roll=False, head=0,
-             extL=0)
+def pose_state(anim, f):
+    p = dict(bob=0, crouch=0, legL=(0, 0), legR=(0, 0),
+             armL=(0, 0), armR=(0, 0), ext=0, prone=False)
     if anim == "idle":
         p["bob"] = [0, 1][f]
         p["armL"] = (0, [0, 1][f]); p["armR"] = (0, [0, 1][f])
@@ -332,94 +392,35 @@ def pose_for(anim, f):
         ][f])
     elif anim == "attack_melee":
         p.update([
-            dict(armR=(-2, -1), lean=-1, ext=-3),
-            dict(armR=(1, -2), lean=1, ext=5, legR=(1, 0), bob=1),
-            dict(armR=(1, -1), lean=1, ext=4),
-            dict(armR=(0, 0), lean=0, ext=0),
+            dict(armR=(-2, -1), ext=-3),
+            dict(armR=(1, -2), ext=6, bob=1),
+            dict(armR=(1, -1), ext=5),
+            dict(armR=(0, 0), ext=0),
         ][f])
     elif anim == "attack_ranged":
         p.update([
             dict(armR=(2, -2), ext=3),
-            dict(armR=(0, -2), lean=-1, ext=2, bob=1),
+            dict(armR=(0, -2), ext=2, bob=1),
             dict(armR=(2, -2), ext=3),
         ][f])
     elif anim == "hurt":
-        p.update([dict(lean=-2, head=1, armL=(-1, 1)), dict(lean=-1, head=1)][f])
+        p.update([dict(legL=(1, 0)), dict(legL=(1, 1))][f])
     elif anim == "death":
         p.update([
-            dict(lean=-1, head=1),
-            dict(lean=-2, head=1, crouch=2, bob=1),
-            dict(crouch=4, head=1),
-            dict(crouch=7, lean=-1),
-            dict(prone=True),
-            dict(prone=True),
+            dict(bob=1), dict(crouch=3), dict(crouch=6), dict(crouch=10),
+            dict(prone=True), dict(prone=True),
         ][f])
     elif anim == "dodge":
         p.update([
-            dict(crouch=2),
-            dict(crouch=7, lean=1, head=1, roll=True),
-            dict(crouch=7, lean=1, head=1, roll=True),
-            dict(crouch=1),
+            dict(crouch=2), dict(crouch=9), dict(crouch=9), dict(crouch=1),
         ][f])
     elif anim == "interact":
         p.update([
-            dict(armR=(1, 2), ext=1),
-            dict(armR=(2, 3), ext=2, lean=1),
-            dict(armR=(1, 2), ext=1),
+            dict(armR=(1, 2), ext=2),
+            dict(armR=(2, 3), ext=3),
+            dict(armR=(1, 2), ext=2),
         ][f])
     return p
-
-
-# ------------------------------------------------------------------ arah ----
-
-SHOULDER = {"s": (2, 12), "se": (2, 12), "e": (7, 7), "ne": (3, 11), "n": (2, 12)}
-HIP_X = {"s": 4, "se": 4, "e": 5, "ne": 4, "n": 4}
-
-
-def build(d, anim, f):
-    p = pose_for(anim, f)
-    mat = {}
-
-    if p["prone"]:
-        stamp(mat, PRONE["n" if d in ("n", "ne") else "s"], 0)
-        return render(shade(mat))
-
-    if p["roll"]:
-        stamp(mat, TUCK, 0)
-        return render(shade(mat))
-
-    yb = 1 + p["bob"] + p["crouch"]          # baris pertama art (y1 saat diam)
-    lt = 14 + p["bob"] + p["crouch"]         # paha mulai; telapak tetap di y23
-
-    hx = HIP_X[d]
-
-    if d == "e":
-        leg(mat, 5, lt, p["legR"][0], p["legR"][1], inner=1, toe=1)
-        leg(mat, 7, lt, p["legL"][0], p["legL"][1], inner=-1, toe=1)
-    else:
-        leg(mat, hx, lt, p["legR"][0], p["legR"][1], inner=1, toe=-1)
-        leg(mat, hx + 4, lt, p["legL"][0], p["legL"][1], inner=-1, toe=1)
-
-    sl, sr = SHOULDER[d]
-    if d in ("e", "ne", "n"):
-        arm(mat, (sl, 7 + p["bob"] + p["crouch"]), p["armL"][0], p["armL"][1],
-            inner=1, tone="j")
-
-    stamp(mat, BASE[d], yb)
-
-    if d == "e":
-        arm(mat, (7, 7 + p["bob"] + p["crouch"]), p["armR"][0], p["armR"][1],
-            ext=p["ext"], inner=-1)
-    elif d == "n":
-        arm(mat, (1, 7 + p["bob"] + p["crouch"]), p["armL"][0], p["armL"][1], inner=1)
-        arm(mat, (13, 7 + p["bob"] + p["crouch"]), p["armR"][0], p["armR"][1],
-            ext=p["ext"], inner=-1)
-    else:
-        arm(mat, (1, 7 + p["bob"] + p["crouch"]), p["armL"][0], p["armL"][1], inner=1)
-        arm(mat, (13, 7 + p["bob"] + p["crouch"]), p["armR"][0], p["armR"][1],
-            ext=p["ext"], inner=-1)
-
-    return render(shade(mat))
 
 
 DIRS5 = ["s", "se", "e", "ne", "n"]
@@ -448,31 +449,26 @@ def build_atlas():
 
 
 def validate(atlas):
-    cells = sum(a[1] for a in ANIMS) * len(DIRS5)
-    col = 0
-    bad_edges, bad_top, empty = [], [], []
+    col, empty, edges, top = 0, 0, 0, 0
     for (name, count, fps) in ANIMS:
-        for r, d in enumerate(DIRS5):
+        for r in range(len(DIRS5)):
             for i in range(count):
-                cell = atlas.crop(((col + i) * W, r * H, (col + i) * W + W, r * H + H))
-                px = cell.load()
-                filled = [(x, y) for y in range(H) for x in range(W) if px[x, y][3] > 0]
+                px = atlas.crop(((col + i) * W, r * H, (col + i) * W + W,
+                                 r * H + H)).load()
+                filled = [(x, y) for y in range(H) for x in range(W) if px[x, y][3]]
                 if not filled:
-                    empty.append(f"{name}/{d}/{i}")
+                    empty += 1
                 content = [(x, y) for (x, y) in filled if px[x, y][:3] != OUTLINE[:3]]
                 if any(x in (0, W - 1) for x, _ in content):
-                    bad_edges.append(f"{name}/{d}/{i}")
+                    edges += 1
                 if any(y == 0 for _, y in content):
-                    bad_top.append(f"{name}/{d}/{i}")
+                    top += 1
         col += count
-
-    print(f"  sel diperiksa      : {cells}")
-    print(f"  sel kosong         : {len(empty)}")
-    print(f"  isi menyentuh tepi : {len(bad_edges)}")
-    print(f"  isi di baris 0     : {len(bad_top)}")
-    ok = not (empty or bad_edges or bad_top)
-    print(f"  HASIL              : {'LULUS' if ok else 'GAGAL'}")
-    return ok
+    print(f"  sel {W}x{H}          : {sum(a[1] for a in ANIMS) * 5}")
+    print(f"  sel kosong         : {empty}")
+    print(f"  isi menyentuh tepi : {edges}")
+    print(f"  isi di baris 0     : {top}")
+    print(f"  HASIL              : {'LULUS' if not (empty or edges or top) else 'GAGAL'}")
 
 
 def main():
@@ -483,136 +479,44 @@ def main():
     atlas.save(out)
     print(f"atlas {atlas.width}x{atlas.height} -> {out}")
     validate(atlas)
-    make_sheet(root, atlas)
-    make_gif(root, atlas)
-    make_character_sheet(root, atlas)
+    sheet(root, atlas)
 
 
-def make_sheet(root, atlas):
-    S = 6
+def sheet(root, atlas):
+    S = 8
     cw, ch = W * S, H * S
     cols = sum(a[1] for a in ANIMS)
-    pad_l, pad_t = 96, 44
+    pad_l, pad_t = 80, 40
     prev = Image.new("RGBA", (pad_l + cols * cw + 16, pad_t + 5 * ch + 40), (22, 24, 28, 255))
     d = ImageDraw.Draw(prev)
     try:
-        bold = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 17)
-        small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 13)
+        bold = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
+        small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12)
     except Exception:
         bold = small = ImageFont.load_default()
-    d.text((12, 12), "PLAYER — 150 frame digambar · 16x24 · pivot (8,23) · 5 arah + 3 mirror",
+    d.text((12, 10), "PLAYER v3 — 24x32 · 150 frame digambar · pivot (12,31)",
            font=bold, fill=(232, 234, 238, 255))
     c = 0
     for (name, count, fps) in ANIMS:
-        d.text((pad_l + c * cw + 2, 29), f"{name} {count}f @{int(fps)}",
-               font=small, fill=(96, 200, 176, 255))
+        d.text((pad_l + c * cw + 2, 26), f"{name} {count}f", font=small,
+               fill=(96, 200, 176, 255))
         c += count
     for r, dn in enumerate(DIRS5):
         y = pad_t + r * ch
-        d.text((16, y + ch // 2 - 9), dn.upper(), font=bold, fill=(198, 208, 218, 255))
+        d.text((12, y + ch // 2 - 8), dn.upper(), font=bold, fill=(198, 208, 218, 255))
         c = 0
         for (name, count, fps) in ANIMS:
             for i in range(count):
                 cell = atlas.crop(((c + i) * W, r * H, (c + i) * W + W, r * H + H))
                 prev.alpha_composite(cell.resize((cw, ch), Image.NEAREST),
                                      (pad_l + (c + i) * cw, y))
-                d.rectangle([pad_l + (c + i) * cw, y, pad_l + (c + i) * cw + cw - 1, y + ch - 1],
+                d.rectangle([pad_l + (c + i) * cw, y,
+                             pad_l + (c + i) * cw + cw - 1, y + ch - 1],
                             outline=(44, 48, 56, 255))
             c += count
     path = os.path.join(root, "docs", "art", "player-sheet-final.png")
     prev.save(path)
     print(f"sheet -> {path}")
-
-
-def make_gif(root, atlas):
-    start = ANIMS[0][1]
-    gw, gh = W * 8, H * 8
-    frames = []
-    for i in range(6):
-        sheet = Image.new("RGBA", (gw * 5 + 50, gh + 24), (22, 24, 28, 255))
-        for r in range(5):
-            cell = atlas.crop(((start + i) * W, r * H, (start + i) * W + W, r * H + H))
-            sheet.alpha_composite(cell.resize((gw, gh), Image.NEAREST), (10 + r * (gw + 6), 10))
-        frames.append(sheet)
-    path = os.path.join(root, "docs", "art", "player-walk-preview.gif")
-    frames[0].save(path, save_all=True, append_images=frames[1:], duration=120, loop=0)
-    print(f"gif -> {path}")
-
-
-def make_character_sheet(root, atlas):
-    S = 12
-    gw, gh = W * S, H * S
-    cols = 13
-    pal_items = [(k, c) for k, c in PAL.items() if c]
-    pal_rows = (len(pal_items) + cols - 1) // cols
-    notes = [
-        "Proporsi diukur dari foto: 7,4 kepala; bahu = 2,5 x lebar kepala; kaki 41,5% tinggi.",
-        "Di 24 px kepala 3 px mustahil, jadi kepala 5 px (4,8 kepala) dan kaki 10 px (42%).",
-        "Kaki 41,7% hampir sama dengan foto (41,5%); selisih tinggi diserap kepala, bukan kaki.",
-        "v1 lama: kepala 6 px, kaki 8 px = 1:3,8 kepala — chibi. v2: 1:4,8 dengan kaki 10 px.",
-        "Cahaya dari ATAS: baris E/SE dipakai juga sebagai W/SW lewat flip_h.",
-        "Bob hanya ke bawah (0/+1); bob ke atas membuat kepala menyentuh baris 0.",
-        "Detail asimetris (tas selempang) DILARANG — membatalkan baris mirror.",
-        "WAJAH butuh 3 baris: rambut / DAHI / mata. Tanpa baris dahi, mata menempel",
-        "  di bawah rambut dan keduanya menyatu jadi satu blok gelap (diuji 4 varian).",
-        "Sisi baris mata harus KULIT, bukan rambut — kalau rambut, kedua mata menyatu",
-        "  dengan massa rambut. Ini juga alasan kepala tidak boleh < 6 baris.",
-    ]
-    pw = 40 + 5 * (gw + 20)
-    y_pal = 92 + gh + 44
-    y_notes = y_pal + 34 + pal_rows * 54 + 16 + 12 + 4 * 34 + 12
-    ph = y_notes + len(notes) * 20 + 28
-
-    img = Image.new("RGBA", (pw, ph), (20, 22, 26, 255))
-    d = ImageDraw.Draw(img)
-    try:
-        bold = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 21)
-        mid = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 14)
-        small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 12)
-    except Exception:
-        bold = mid = small = ImageFont.load_default()
-
-    d.text((24, 18), "THE END HAS COME — SET SPRITE PEMAIN v2 (proporsi manusia)",
-           font=bold, fill=(236, 238, 242, 255))
-    d.text((24, 48), "150 frame digambar / 240 di atlas · kanvas 16x24 · pivot (8,23) · kaki di baseline",
-           font=small, fill=(150, 158, 168, 255))
-
-    labels = [("S", "depan"), ("SE", "3/4 depan"), ("E", "profil"),
-              ("NE", "3/4 belakang"), ("N", "punggung")]
-    for i, (dn, note) in enumerate(labels):
-        x = 24 + i * (gw + 20)
-        cell = atlas.crop((0, i * H, W, i * H + H))
-        img.alpha_composite(cell.resize((gw, gh), Image.NEAREST), (x, 88))
-        d.text((x, 88 + gh + 6), dn, font=mid, fill=(120, 216, 192, 255))
-        d.text((x + 32, 88 + gh + 8), note, font=small, fill=(140, 148, 158, 255))
-
-    d.text((24, y_pal), "PALET — 26 warna · 3 langkah per material · tanpa anti-aliasing",
-           font=mid, fill=(230, 232, 236, 255))
-    for i, (k, c) in enumerate(pal_items):
-        bx = 24 + (i % cols) * 60
-        by = y_pal + 26 + (i // cols) * 54
-        d.rectangle([bx, by, bx + 50, by + 30], fill=(c[0], c[1], c[2], 255))
-        d.text((bx, by + 33), f"{k} {c[0]:02x}{c[1]:02x}{c[2]:02x}", font=small,
-               fill=(126, 134, 144, 255))
-
-    prop = [("kepala", 13.5, 5 / 24 * 100), ("leher", 4.7, 1 / 24 * 100),
-            ("badan", 40.3, 7 / 24 * 100), ("kaki", 41.5, 10 / 24 * 100)]
-    bar_top = y_pal + 34 + pal_rows * 54 + 16
-    d.text((24, bar_top), "PROPORSI — foto vs sprite (persen tinggi total)",
-           font=mid, fill=(230, 232, 236, 255))
-    for i, (label, ref, spr) in enumerate(prop):
-        by = bar_top + 26 + i * 34
-        d.text((24, by + 1), label, font=small, fill=(150, 158, 168, 255))
-        d.rectangle([110, by, 110 + int(ref * 8), by + 10], fill=(92, 110, 130, 255))
-        d.rectangle([110, by + 13, 110 + int(spr * 8), by + 23], fill=(72, 176, 152, 255))
-        d.text((110 + int(ref * 8) + 8, by - 1), f"foto {ref:.1f}%", font=small, fill=(120, 130, 142, 255))
-        d.text((110 + int(spr * 8) + 8, by + 12), f"sprite {spr:.1f}%", font=small, fill=(110, 200, 178, 255))
-    for j, t in enumerate(notes):
-        d.text((24, y_notes + j * 20), "· " + t, font=small, fill=(170, 178, 188, 255))
-
-    path = os.path.join(root, "docs", "art", "player-character-sheet.png")
-    img.save(path)
-    print(f"character sheet -> {path}")
 
 
 if __name__ == "__main__":

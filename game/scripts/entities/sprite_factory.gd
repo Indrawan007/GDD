@@ -29,6 +29,11 @@ const WALKER_ANIMS := [
 ]
 
 
+## Sel kanvas pemain 24x32 (v3). Walker masih 16x24 sampai set zombie dibuat.
+const PLAYER_CELL := Vector2i(24, 32)
+const WALKER_CELL := Vector2i(16, 24)
+
+
 static func _build(path: String, anims: Array, cell := Vector2i(16, 24)) -> SpriteFrames:
 	var tex := load(path) as Texture2D
 	var frames := SpriteFrames.new()
@@ -57,7 +62,7 @@ static func _build(path: String, anims: Array, cell := Vector2i(16, 24)) -> Spri
 
 
 static func player_frames() -> SpriteFrames:
-	return _build(PLAYER_ATLAS, PLAYER_ANIMS)
+	return _build(PLAYER_ATLAS, PLAYER_ANIMS, PLAYER_CELL)
 
 
 static func walker_frames() -> SpriteFrames:

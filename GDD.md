@@ -1,6 +1,6 @@
 # The End Has Come
 
-## Game Design Document v3.13 — Canonical
+## Game Design Document v3.14 — Canonical
 
 ### Survival Open World · Shelter · Singleplayer · Godot 4.7.2
 
@@ -53,6 +53,7 @@
 | 31 | **Set sprite pemain v1: 150 frame digambar, atlas 480×120, dipakai engine** | §17.3B, `docs/art/player-character-sheet.png` |
 | 32 | **Sprite pemain v2: proporsi diukur dari foto (kaki 42%, 1:4,8 kepala) + koreksi shadow 32×14 → 14×7** | §17.3B, §17.12, `docs/art/ingame-scale-check.png` |
 | 33 | **Wajah: aturan 3 baris (rambut/dahi/mata) + sisi kulit + bahu menyambung lengan**, diuji 6 varian | §17.3B |
+| 34 | **Kanvas pemain 16×24 → 24×32**: wajah dapat 6 baris, pivot (12,31), collider 12×10, shadow 16×7 | §17.3C, §17.12 |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -1112,7 +1113,7 @@ Aturan: pemain harus bisa mengenali **"pintu mana yang sedang dipukul"** dari su
 |------|-------|
 | Resolusi native | 320×180, integer scale ke 1280×720 / 1920×1080 |
 | Tile | 16×16 |
-| Sprite karakter | **16×24** (1 tile lebar, 1,5 tile tinggi) — supaya proporsi masih "manusia" dan tidak tenggelam di tile |
+| Sprite karakter | **24×32** (1,5 × 2 tile) — dinaikkan dari 16×24 di v3.14; lihat §17.3C |
 | Palet | 32 warna global + 6 warna aksen per distrik |
 | Mood | Gelap, kotor, terbaca. Aksen merah (darah), kuning (api/listrik), hijau (racun) |
 | Filter | Nearest, mipmaps OFF, pixel snap ON |
@@ -1184,10 +1185,10 @@ Aturan: pemain harus bisa mengenali **"pintu mana yang sedang dipukul"** dari su
 
 | Item | Nilai |
 |------|-------|
-| Canvas | 16×24, pivot di (8, 23) — **kaki di baseline**, bukan tengah |
-| Collision | 10×10 di kaki (bukan seluruh sprite) — supaya gerak di lorong sempit tidak terasa mentok |
+| Canvas | **24×32**, pivot di **(12, 31)** — kaki di baseline, bukan tengah |
+| Collision | **12×10** di kaki (bukan seluruh sprite) — supaya gerak di lorong sempit tidak terasa mentok |
 | Arah | **8** (S, SE, E, NE, N, NW, W, SW). Digambar 5, mirror 3 |
-| Total frame di atlas | **240** (30 × 8 arah) |
+| Total frame di atlas | **240** (30 × 8 arah) · atlas 720×160 |
 | **Frame yang harus digambar** | **150** (30 × 5 arah) — 90 frame dihemat lewat mirror |
 
 **Kenapa 8 arah, dan bagaimana biayanya tidak jadi 2× (keputusan v3.6):**
@@ -1301,6 +1302,26 @@ Manual (zoom 12x-20x):
 2. Belum ada varian `hurt` yang berbeda per arah serangan.
 3. Palette swap oranye/abu (§17.3) belum dibuat, tapi tinggal mengganti huruf `j/J/k` di generator.
 4. Belum ada senjata di tangan — sesuai §17.1, senjata adalah node terpisah yang berputar bebas.
+
+### 17.3C Kanvas Dinaikkan 16×24 → 24×32 (v3.14)
+
+Referensi visual eksternal (288×52, karakter ~51 px) menunjukkan proporsi **1:4** untuk karakter yang terbaca bagus. Proporsi kita sudah 1:4 sejak v3.12 — jadi selisihnya **bukan proporsi, tapi resolusi**: di 16×24 wajah hanya kebagian 3 baris, dan 3 baris tidak cukup untuk rambut + dahi + mata.
+
+| Item | 16×24 (v1–v2) | **24×32 (v3.14)** |
+|---|---|---|
+| Kepala | 6 baris (25%) | **8 baris (25%)** — 6 baris khusus wajah |
+| Wajah | 3 baris | **6 baris**: rambut ×2, dahi, mata, hidung, mulut |
+| Badan | 7 baris | 10 baris |
+| Kaki | 10 baris (42%) | **13 baris (41%)** |
+| Piksel per sel | 384 | 768 |
+| Pivot | (8,23) | **(12,31)** |
+| Collider | 10×10 | **12×10** |
+| Shadow | 14×7 | **16×7** |
+| Atlas | 480×120 | **720×160** |
+
+**Aturan simetri kanvas (baru, wajib):** kanvas 24 px punya sumbu cermin di **x=11,5**, sedangkan siluet selebar 16 px (bahu) berpusat di x=11,5 hanya kalau ia menempati x4..x19. Kalau tidak persis, `flip_h` untuk arah W/SW menggeser karakter **1 px** dan jalannya terlihat pincang. Ini sudah dicek otomatis: piksel yang berbeda antara frame S dan cerminnya **78 dari 440** — semuanya berasal dari shading asimetris (rambut disisir), bukan dari pergeseran siluet.
+
+**Biaya:** semua aset karakter lain (7 tipe zombie, NPC) kini harus 24×32 juga. Kalau tidak, satu layar akan berisi dua resolusi karakter dan itu langsung terlihat. Zombie walker tetap 16×24 sampai setnya dibuat — ini utang teknis yang dicatat, bukan dilupakan.
 
 ### 17.4 Sprite Zombie
 
@@ -1483,12 +1504,12 @@ Keputusan D22 dikunci di sini sebagai **angka**, bukan sebagai selera. Lembar vi
 | Muka dinding eksterior | **10 px** (6 px atas + 10 px muka) | Memberi rasa tinggi tanpa proyeksi diagonal |
 | Muka dinding rendah / pagar | **6 px** | Bisa dilewati peluru, tetap terbaca punya volume |
 | Atap | **alpha 0,25–0,35** saat pemain di dalam footprint | Tidak pernah menutupi pemain (larangan oklusi) |
-| Shadow karakter | **ellipse 14×7, offset (0, −1), alpha 45%** — *dikoreksi dari 32×14, lihat catatan* | Karakter tidak terlihat mengambang |
-| Y-sort key | **titik kaki (pivot 8,23)** — bukan tengah sprite | Urutan gambar benar saat pemain di belakang meja |
+| Shadow karakter | **ellipse 16×7, offset (0, −1), alpha 45%** — *dikoreksi dari 32×14, lihat catatan* | Karakter tidak terlihat mengambang |
+| Y-sort key | **titik kaki (pivot 12,31)** — bukan tengah sprite | Urutan gambar benar saat pemain di belakang meja |
 | Perspective scaling | **TIDAK ADA.** Objek di "atas" layar tidak mengecil | Menjaga keterbacaan & ukuran sprite konsisten |
 | Arah sprite | 8 arah, 5 baris digambar + 3 mirror (§17.3) | Konsisten dengan gerak 8 arah |
 
-> **Koreksi shadow (v3.12).** Nilai lama 32×14 berasal dari perkiraan, bukan pengukuran. Diuji pada skala asli 320×180: ellipse 32 px = selebar **2× karakter**, dan dengan alpha 45% ia terbaca sebagai genangan air, bukan kontak kaki. Dibandingkan langsung di `docs/art/ingame-scale-check.png`. Lebar karakter 14 px (bahu) → shadow **14×7** (setengah tinggi untuk perspektif), offset **−1 px** karena telapak kaki di (8,23) dan baseline sel 24. Ini satu-satunya perubahan pada §17.12 yang dikunci; kalau tidak disetujui, kembalikan ke 32×14 dan konsekuensinya adalah genangan gelap di bawah setiap karakter.
+> **Koreksi shadow (v3.12).** Nilai lama 32×14 berasal dari perkiraan, bukan pengukuran. Diuji pada skala asli 320×180: ellipse 32 px = selebar **2× karakter**, dan dengan alpha 45% ia terbaca sebagai genangan air, bukan kontak kaki. Dibandingkan langsung di `docs/art/ingame-scale-check.png`. Lebar karakter 16 px (bahu) → shadow **16×7** (setengah tinggi untuk perspektif), offset **−1 px** karena telapak kaki di (8,23) dan baseline sel 24. Ini satu-satunya perubahan pada §17.12 yang dikunci; kalau tidak disetujui, kembalikan ke 32×14 dan konsekuensinya adalah genangan gelap di bawah setiap karakter.
 
 **Tes penerimaan aset (dipakai saat review seni, bukan selera):**
 
