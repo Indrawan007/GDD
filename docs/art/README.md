@@ -32,6 +32,8 @@ Pemain sudah punya set lengkap: **150 frame digambar** (30 frame × 5 arah), dig
 | Pemisah bagian | **selout** 1 px (nada gelap di tepi dalam) | Tanpa ini lengan menyatu dengan badan jadi satu balok. |
 | Simetri | wajib | Detail asimetris membatalkan baris mirror (§17.3). |
 | Palet | 26 warna, 3 langkah per material | Batas §17.1: 32 global, tanpa anti-aliasing. |
+| **Wajah** | 3 baris wajib: rambut / **dahi** / mata; sisi baris mata = kulit | Tanpa baris dahi, mata menempel di rambut dan menyatu jadi blok gelap. Diuji 6 varian, diperiksa di zoom 14× dan skala main 4×. |
+| **Bahu** | baris bahu 14 px menyambung ke lengan | Lengan yang hanya ditempel di luar badan terbaca sebagai kaus tanpa lengan. |
 | **Proporsi** | kaki **10 px (42%)**, kepala **5 px** = 1:4,8 kepala | Diukur dari foto model: 7,4 kepala, kaki 41,5%. Kepala dipaksa 5 px karena 3 px mustahil diberi wajah; seluruh selisih diserap kepala, bukan kaki. |
 | **Shadow** | ellipse **14×7**, offset **(0,−1)**, alpha 45% | 32×14 (nilai lama) = selebar 2× karakter dan terbaca sebagai genangan. Bukti: `ingame-scale-check.png`. |
 

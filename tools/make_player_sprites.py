@@ -74,30 +74,34 @@ def rgba(c):
 
 BASE = {}
 
+# Kepala 6 baris (1-6). Baris 3 = DAHI, wajib ada: tanpa dahi, mata menempel
+# langsung di bawah rambut dan keduanya menyatu jadi satu blok gelap.
+# Sisi mata memakai kulit (bukan rambut) supaya mata tidak menyatu dengan rambut.
+
 BASE["s"] = [
-    "......AAAA......",  # 1  ubun-ubun
-    ".....AaaaaA.....",  # 2  rambut
-    ".....AesseA.....",  # 3  mata x6 & x9
-    ".....sssSss.....",  # 4  hidung
-    "......syys......",  # 5  mulut, rahang menyempit
-    ".......SS.......",  # 6  leher
-    "...kkkkkkkkkk...",  # 7  bahu + deltoid (10 px)
-    "....JtjjjjtJ....",  # 8  dada
+    "......HHHH......",  # 1  atap rambut
+    ".....HaaaaH.....",  # 2  rambut
+    ".....SssSss.....",  # 3  dahi
+    ".....sesseS.....",  # 4  mata x6 & x9
+    ".....sshsss.....",  # 5  hidung terang 2 px
+    "......syys......",  # 6  mulut + dagu
+    "..kkkkkkkkkkkk..",  # 7  bahu menyambung ke lengan (bukan kaus tanpa lengan)
+    "....JtjjjjtJ....",  # 8  dada + tali tas
     "....JtjjjjtJ....",  # 9
-    "....JjjjjjjJ....",  # 10 pinggang menyempit sedikit
+    "....JjjjjjjJ....",  # 10 pinggang
     "....JjjjjjjJ....",  # 11
-    ".....JjjjjJ.....",  # 12 pinggang paling sempit
-    ".....wwvvww.....",  # 13 ikat pinggang
+    ".....JjjjjJ.....",  # 12 pinggang menyempit
+    ".....wwvvww.....",  # 13 ikat pinggang + gesper
 ]
 
 BASE["se"] = [
-    "......AAAA......",
-    ".....AaaaaA.....",
-    ".....AesseA.....",
-    ".....sssSss.....",
+    "......HHHH......",
+    ".....HaaaaH.....",
+    ".....SssSss.....",
+    ".....sesseS.....",
+    ".....sshsss.....",
     "......syys......",
-    ".......SS.......",
-    "...kkkkkkkkkk...",
+    "..kkkkkkkkkkkk..",
     "....JtjjjjtJ....",
     "....JtjjjjtJ....",
     "....JjjjjjjJ....",
@@ -106,16 +110,17 @@ BASE["se"] = [
     ".....wwvvww.....",
 ]
 
+# Profil: mata tunggal di x7, hidung menonjol ke kanan di x9-x10.
 BASE["e"] = [
-    "......AAAA......",
-    ".....AaaaaA.....",
-    ".....Aaeee......",
-    ".....Asshhs.....",
-    ".....ASsyy......",
-    ".......SS.......",
-    "......kkkkk.....",
+    "......HHHH......",
+    ".....HaaaaH.....",
+    ".....Asssss.....",
+    ".....Aseshs.....",
+    ".....sshhss.....",
+    "......syys......",
+    ".....kkkkkk.....",
     "..nmmjjjjjj.....",
-    "..nmmJjjjjjj....",
+    "..nmmjjjjjj.....",
     "..nmmjjjjjJ.....",
     "..NNNjjjjjJ.....",
     "..NNNJJjjJJ.....",
@@ -123,10 +128,10 @@ BASE["e"] = [
 ]
 
 BASE["ne"] = [
-    "......AAAA......",
+    "......HHHH......",
+    ".....HaaaaH.....",
+    ".....HaaaaH.....",
     ".....AaaaaA.....",
-    ".....AaaaaA.....",
-    ".....AAaaAA.....",
     "......AaaA......",
     ".......SS.......",
     "...kkkkkkkkkk...",
@@ -139,13 +144,13 @@ BASE["ne"] = [
 ]
 
 BASE["n"] = [
-    "......AAAA......",
-    ".....AaaaaA.....",
-    ".....AaaaaA.....",
+    "......HHHH......",
+    ".....HaaaaH.....",
+    ".....HaaaaH.....",
     ".....AaaaaA.....",
     "......AaaA......",
     ".......SS.......",
-    "...kkkkkkkkkk...",
+    "..kkkkkkkkkkkk..",
     "....jmNNNNmj....",
     "....jmNttNmj....",
     "....jmNNNNmj....",
@@ -162,9 +167,9 @@ PRONE = {
         "................", "................", "................", "................",
         "................", "................", "................", "................",
         "................", "................",
-        "....AAA.........",
-        "...AaaaaA.......",
-        "....AasssAjjjjj.",
+        "....HHHH........",
+        "...HaaaaH.......",
+        "....HasssHjjjjj.",
         "...jjjjjjjjjpp..",
         "..jjjjjjjjjjpp..",
     ],
@@ -174,9 +179,9 @@ PRONE = {
         "................", "................", "................", "................",
         "................", "................", "................", "................",
         "................", "................",
-        "....AAA.........",
-        "...AaaaaA.......",
-        "....AaaaAjjjjjj.",
+        "....HHHH........",
+        "...HaaaaH.......",
+        "....HaaaaHjjjjj.",
         "...jjjjjjjjjpp..",
         "..NNNNNNNNNNpp..",
     ],
@@ -188,8 +193,8 @@ TUCK = [
     "................", "................", "................", "................",
     "................", "................", "................", "................",
     "................",
-    "......AAA.......",
-    ".....AaaaA......",
+    "......HHHH......",
+    ".....HaaaaH.....",
     "....AjjjjjA.....",
     "...jjjjjjjjp....",
     "...jjjjjjjjpp...",
@@ -199,7 +204,6 @@ TUCK = [
     "................",
     "................",
 ]
-
 
 # ------------------------------------------------------------- komposisi ----
 
@@ -407,12 +411,12 @@ def build(d, anim, f):
         arm(mat, (7, 7 + p["bob"] + p["crouch"]), p["armR"][0], p["armR"][1],
             ext=p["ext"], inner=-1)
     elif d == "n":
-        arm(mat, (2, 7 + p["bob"] + p["crouch"]), p["armL"][0], p["armL"][1], inner=1)
-        arm(mat, (12, 7 + p["bob"] + p["crouch"]), p["armR"][0], p["armR"][1],
+        arm(mat, (1, 7 + p["bob"] + p["crouch"]), p["armL"][0], p["armL"][1], inner=1)
+        arm(mat, (13, 7 + p["bob"] + p["crouch"]), p["armR"][0], p["armR"][1],
             ext=p["ext"], inner=-1)
     else:
-        arm(mat, (2, 7 + p["bob"] + p["crouch"]), p["armL"][0], p["armL"][1], inner=1)
-        arm(mat, (12, 7 + p["bob"] + p["crouch"]), p["armR"][0], p["armR"][1],
+        arm(mat, (1, 7 + p["bob"] + p["crouch"]), p["armL"][0], p["armL"][1], inner=1)
+        arm(mat, (13, 7 + p["bob"] + p["crouch"]), p["armR"][0], p["armR"][1],
             ext=p["ext"], inner=-1)
 
     return render(shade(mat))
@@ -549,6 +553,10 @@ def make_character_sheet(root, atlas):
         "Cahaya dari ATAS: baris E/SE dipakai juga sebagai W/SW lewat flip_h.",
         "Bob hanya ke bawah (0/+1); bob ke atas membuat kepala menyentuh baris 0.",
         "Detail asimetris (tas selempang) DILARANG — membatalkan baris mirror.",
+        "WAJAH butuh 3 baris: rambut / DAHI / mata. Tanpa baris dahi, mata menempel",
+        "  di bawah rambut dan keduanya menyatu jadi satu blok gelap (diuji 4 varian).",
+        "Sisi baris mata harus KULIT, bukan rambut — kalau rambut, kedua mata menyatu",
+        "  dengan massa rambut. Ini juga alasan kepala tidak boleh < 6 baris.",
     ]
     pw = 40 + 5 * (gw + 20)
     y_pal = 92 + gh + 44

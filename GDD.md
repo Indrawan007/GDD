@@ -1,6 +1,6 @@
 # The End Has Come
 
-## Game Design Document v3.12 — Canonical
+## Game Design Document v3.13 — Canonical
 
 ### Survival Open World · Shelter · Singleplayer · Godot 4.7.2
 
@@ -52,6 +52,7 @@
 | 30 | **Target engine 4.7.2:** features bump, `scale_mode=integer`, pixel snap yang sebelumnya hilang | §17, §21B, `game/project.godot` |
 | 31 | **Set sprite pemain v1: 150 frame digambar, atlas 480×120, dipakai engine** | §17.3B, `docs/art/player-character-sheet.png` |
 | 32 | **Sprite pemain v2: proporsi diukur dari foto (kaki 42%, 1:4,8 kepala) + koreksi shadow 32×14 → 14×7** | §17.3B, §17.12, `docs/art/ingame-scale-check.png` |
+| 33 | **Wajah: aturan 3 baris (rambut/dahi/mata) + sisi kulit + bahu menyambung lengan**, diuji 6 varian | §17.3B |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -1260,6 +1261,22 @@ Permintaan "semirip manusia" tidak bisa dijawab dengan perasaan, jadi diukur dar
 **Kepala 3 px tidak mungkin** — tidak ada ruang untuk dua mata. Jadi satu-satunya penyimpangan yang boleh adalah kepala: **5 px**, yang menyerap seluruh selisih (20,8% vs 13,5%). Konsekuensinya **kaki tetap 10 px = 41,7%**, praktis sama dengan manusia asli.
 
 Versi sebelumnya (v1) memakai kepala 6 + kaki 8 = **1:3,8 kepala** — itu proporsi chibi, dan itulah sebabnya sprite terlihat "kurang manusia" meski shadingnya benar. v2 = **1:4,8** dengan kaki 42%.
+
+#### Aturan wajah di 16×24 (hasil percobaan, bukan selera)
+
+Wajah adalah bagian yang paling cepat gagal di kanvas 16×24. Diuji **6 varian** dan diperiksa pada zoom 14× *dan* skala main 4× (karakter 24 px di layar 320×180, sesuai ukuran sebenarnya dilihat pemain):
+
+| Aturan | Kenapa | Kalau dilanggar |
+|---|---|---|
+| Minimal **3 baris**: rambut / **dahi** / mata | Dahi adalah pemisah antara massa rambut gelap dan mata gelap | Mata menempel di bawah rambut → keduanya menyatu jadi satu blok hitam; wajah hilang, kepala terbaca sebagai helm |
+| Sisi baris mata = **kulit**, bukan rambut | Mata butuh latar terang untuk terbaca | Kedua mata menyatu dengan rambut di kiri-kanan → wajah terbaca sebagai topeng |
+| Hidung **2 px terang** di bawah mata | Memberi tonjolan tengah wajah | Wajah rata, tanpa kedalaman |
+| Mulut **2 px** `y` (bukan 1 px) | 1 px tidak terbaca, hanya menambah kotoran | Ekspresi hilang |
+| Kepala **tidak boleh < 6 baris** | 5 baris = rambut+dahi+mata+mulut tanpa dagu | Dagu menempel di leher, wajah terasa terpotong |
+
+**Konsekuensi yang harus diterima:** wajah yang terbaca menuntut kepala **6 baris (5 px)**, sehingga rasio kepala menjadi **1:4,8**, bukan 1:7,4 seperti manusia asli. Ini bukan kemalasan — pada 1:7,4 kepala hanya 3 px dan **tidak ada satu pun** dari 6 varian yang berhasil. Pilihan sebenarnya adalah: proporsi anatomis dengan wajah kosong, atau proporsi 1:4,8 dengan wajah yang terbaca. Di game bertahan hidup, wajah yang terbaca lebih penting.
+
+**Aturan lengan (ditemukan saat koreksi yang sama):** baris bahu **harus menyambung** ke lengan (14 px penuh). Kalau lengan hanya ditempel 1 px di luar badan tanpa baris bahu, hasilnya terbaca sebagai **kaus tanpa lengan**, bukan jaket.
 
 **Hasil uji keterbacaan.** Dua bagian: yang bisa diperiksa mesin (dijalankan otomatis setiap generate) dan yang harus dinilai mata.
 
