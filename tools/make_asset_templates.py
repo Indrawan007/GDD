@@ -193,9 +193,9 @@ def draw_tileset(path: str, scale: int = 3) -> None:
     d.text((margin, margin), "THE END HAS COME — PETA ATLAS TILESET", font=font(32, True), fill=TEXT)
     d.text((margin, margin + 44), "1 atlas 512×512 px = 32×32 sel tile 16×16 (1024 tile)",
            font=font(19), fill=DIM)
-    d.text((margin, margin + 72), "Prop TIDAK di sini — prop di atlas bersama (props_interior / props_exterior)",
+    d.text((margin, margin + 72), "Proyeksi: TOP-DOWN 3/4 — dinding punya muka 10px. Prop di atlas bersama.",
            font=font(17), fill=ACCENT)
-    d.text((margin, margin + 100), "Isi per distrik ±263 tile; sisa sel = reserve untuk ekspansi",
+    d.text((margin, margin + 100), "Isi per distrik ±285 tile (termasuk wall face 3/4); sisa sel = reserve",
            font=font(17), fill=DIM)
 
     top = margin + title_h
@@ -206,13 +206,15 @@ def draw_tileset(path: str, scale: int = 3) -> None:
         ("GROUND BLOB B (47)", 0, 2, 24, 2, (56, 78, 96), "material kedua"),
         ("GROUND BLOB C (47)", 0, 4, 24, 2, (92, 74, 52), "material ketiga"),
         ("SIDEWALK (16)", 0, 6, 16, 1, (86, 86, 92), "Match Sides"),
-        ("WALL EXTERIOR (47)", 0, 7, 24, 2, (104, 74, 58), "Match Corners & Sides"),
-        ("WALL INTERIOR (47)", 0, 9, 24, 2, (74, 84, 104), "Match Corners & Sides"),
-        ("ROOF (15)", 0, 11, 15, 1, (108, 96, 72), "di-fade saat pemain masuk"),
-        ("DOOR (12)", 0, 12, 12, 1, (140, 96, 48), "3 material × 4 state"),
-        ("WINDOW (8)", 16, 12, 8, 1, (72, 112, 140), "2 material × 4 state"),
-        ("STAIRS (4)", 24, 12, 4, 1, (100, 100, 100), "naik/turun × 2 arah"),
-        ("DECO FLOOR (20)", 0, 13, 20, 1, (84, 68, 84), "karpet, retak, darah kering"),
+        ("WALL TOP EXTERIOR (47)", 0, 7, 24, 2, (104, 74, 58), "permukaan atas dinding"),
+        ("WALL FACE (24)", 0, 9, 24, 1, (128, 92, 66), "muka 10px: depan, sudut, ujung"),
+        ("WALL TOP INTERIOR (47)", 0, 10, 24, 1, (74, 84, 104), "permukaan atas dinding dalam"),
+        ("LOW WALL / RAIL (16)", 0, 11, 16, 1, (88, 96, 110), "muka 6px, bisa dilewati peluru"),
+        ("ROOF (15)", 0, 12, 15, 1, (108, 96, 72), "di-fade saat pemain masuk"),
+        ("DOOR (12)", 16, 12, 12, 1, (140, 96, 48), "3 material × 4 state"),
+        ("WINDOW (8)", 0, 13, 8, 1, (72, 112, 140), "2 material × 4 state"),
+        ("STAIRS (4)", 8, 13, 4, 1, (100, 100, 100), "naik/turun × 2 arah"),
+        ("DECO FLOOR (20)", 12, 13, 20, 1, (84, 68, 84), "karpet, retak, darah kering"),
         ("RESERVE", 0, 14, 32, 18, (46, 46, 46), "jangan dipakai sebelum 5 distrik selesai"),
     ]
 
@@ -244,6 +246,114 @@ def draw_tileset(path: str, scale: int = 3) -> None:
         color = WARN if line.startswith("!") else DIM
         d.text((margin, ly), line.lstrip("!"), font=font(17), fill=color)
         ly += 36
+
+    os.makedirs(OUT, exist_ok=True)
+    img.save(path)
+
+
+
+def draw_projection_sheet(path: str) -> None:
+    """Lembar spesifikasi proyeksi Top-Down 3/4 (dikunci)."""
+    scale = 10
+    W, H = 1680, 1500
+    img = Image.new("RGB", (W, H), BG)
+    d = ImageDraw.Draw(img)
+
+    d.text((56, 40), "PROYEKSI — TOP-DOWN 3/4 (DIKUNCI)", font=font(34, True), fill=TEXT)
+    d.text((56, 84), "The End Has Come · tile 16×16 · tanpa rotasi kamera · tanpa perspective scaling",
+           font=font(19), fill=DIM)
+    d.text((56, 112), "Setiap aset & tile HARUS mengikuti angka di halaman ini.",
+           font=font(18), fill=ACCENT)
+
+    # ---------- A: anatomi tile dinding ----------
+    ax, ay = 56, 190
+    d.text((ax, ay), "A. SATU TILE DINDING (16×16 px)", font=font(20, True), fill=TEXT)
+    tile = 16 * scale
+    tx, ty = ax, ay + 40
+    d.rectangle([tx, ty, tx + tile, ty + tile], fill=(104, 74, 58), outline=(20, 20, 20), width=2)
+    d.rectangle([tx, ty + 6 * scale, tx + tile, ty + tile], fill=(128, 92, 66), outline=(20, 20, 20), width=1)
+    d.line([tx, ty + 6 * scale, tx + tile, ty + 6 * scale], fill=(240, 200, 120), width=3)
+    lx = tx + tile + 20
+    d.text((lx, ty + 2), "0–6 px — permukaan atas", font=font(16, True), fill=ACCENT)
+    d.text((lx, ty + 24), "(top surface, terlihat dari atas)", font=font(14), fill=DIM)
+    d.text((lx, ty + 6 * scale + 2), "6–16 px — muka dinding", font=font(16, True), fill=ACCENT)
+    d.text((lx, ty + 6 * scale + 24), "(face, 10 px: inilah yang memberi rasa tinggi)", font=font(14), fill=DIM)
+
+    # ---------- B: penampang ----------
+    bx, by = 760, 190
+    d.text((bx, by), "B. PENAMPANG BANGUNAN (potongan samping)", font=font(20, True), fill=TEXT)
+    cx, cy = bx + 10, by + 46
+    bw = 340
+    d.rectangle([cx, cy, cx + bw, cy + 26], fill=(108, 96, 72), outline=(20, 20, 20), width=2)
+    d.rectangle([cx, cy + 26, cx + bw, cy + 96], fill=(128, 92, 66), outline=(20, 20, 20), width=2)
+    d.rectangle([cx, cy + 96, cx + bw, cy + 170], fill=(70, 70, 74), outline=(20, 20, 20), width=2)
+    # karakter + shadow berdiri di lantai
+    px, py = cx + 250, cy + 170
+    d.ellipse([px - 16, py - 7, px + 16, py + 7], fill=(30, 30, 30))
+    d.rectangle([px - 7, py - 34, px + 7, py - 2], fill=(78, 160, 150), outline=(10, 10, 10))
+    # keterangan di bawah gambar
+    ly = cy + 190
+    for label, color in [
+        ("ATAP — alpha 0,25–0,35 saat pemain di dalam bangunan", (240, 232, 200)),
+        ("MUKA DINDING — 10 px eksterior / 6 px low wall interior", (250, 240, 220)),
+        ("LANTAI — ground tile, tanpa collision", (215, 215, 215)),
+        ("KARAKTER — kaki di baseline, shadow ellipse 32×14, offset (0, −2)", (160, 220, 210)),
+    ]:
+        d.text((bx, ly), label, font=font(15), fill=color)
+        ly += 26
+
+    # ---------- C: boleh vs jangan ----------
+    gx, gy = 56, 560
+    d.text((gx, gy), "C. BOLEH  vs  JANGAN", font=font(20, True), fill=TEXT)
+    cell_w, cell_h = 600, 196
+    gap_x, gap_y = 44, 22
+    items = [
+        ("BOLEH · karakter & prop punya shadow",
+         "JANGAN · karakter mengambang tanpa shadow", "shadow"),
+        ("BOLEH · dinding punya muka 10 px",
+         "JANGAN · dinding digambar sebagai garis tipis", "face"),
+        ("BOLEH · atap di-fade saat pemain masuk",
+         "JANGAN · atap menutupi pemain (oklusi)", "roof"),
+    ]
+    for i, (ok_label, bad_label, kind) in enumerate(items):
+        for j, good in enumerate((True, False)):
+            x = gx + j * (cell_w + gap_x)
+            y = gy + 40 + i * (cell_h + gap_y)
+            border = (86, 150, 110) if good else (170, 86, 86)
+            d.rectangle([x, y, x + cell_w, y + cell_h], fill=(36, 36, 36), outline=border, width=3)
+            d.text((x + 12, y + 8), (ok_label if good else bad_label), font=font(15, True),
+                   fill=(160, 220, 175) if good else (240, 170, 170))
+            mx, my = x + 150, y + 70
+            d.rectangle([mx, my, mx + 300, my + 100], fill=(52, 52, 56))
+            if kind == "shadow":
+                if good:
+                    d.ellipse([mx + 132, my + 78, mx + 172, my + 92], fill=(24, 24, 24))
+                d.rectangle([mx + 144, my + 40, mx + 160, my + 84], fill=(78, 160, 150), outline=(10, 10, 10))
+            elif kind == "face":
+                if good:
+                    d.rectangle([mx + 40, my + 34, mx + 260, my + 50], fill=(104, 74, 58), outline=(10, 10, 10))
+                    d.rectangle([mx + 40, my + 50, mx + 260, my + 84], fill=(128, 92, 66), outline=(10, 10, 10))
+                else:
+                    d.line([mx + 40, my + 62, mx + 260, my + 62], fill=(104, 74, 58), width=4)
+            else:  # roof
+                d.rectangle([mx + 40, my + 30, mx + 260, my + 96], fill=(70, 66, 60))
+                d.rectangle([mx + 144, my + 44, mx + 160, my + 88], fill=(78, 160, 150))
+                d.ellipse([mx + 132, my + 84, mx + 172, my + 96], fill=(24, 24, 24))
+                if good:
+                    overlay = Image.new("RGBA", (220, 66), (70, 66, 60, 170))
+                    img.paste(overlay, (mx + 40, my + 30), overlay)
+
+    # ---------- footer ----------
+    fy = 560 + 40 + 3 * (cell_h + gap_y) + 26
+    for line in [
+        "DIKUNCI: tile 16×16 · tanpa rotasi kamera · tanpa perspective scaling (objek di atas TIDAK mengecil)",
+        "Wall face 10 px (eksterior) / 6 px (low wall interior) · roof fade alpha 0,25–0,35 saat pemain di dalam",
+        "Shadow ellipse 32×14, offset (0,−2), alpha 45% · y-sort key = kaki karakter (bukan tengah sprite)",
+        "!Membuka kembali keputusan ini butuh greybox 2 hari + 5 tester + data — bukan opini atau screenshot.",
+    ]:
+        color = WARN if line.startswith("!") else DIM
+        d.text((56, fy), line.lstrip("!"), font=font(16), fill=color)
+        fy += 32
 
     os.makedirs(OUT, exist_ok=True)
     img.save(path)
@@ -357,6 +467,7 @@ def main() -> None:
 
     # ---------------- TILESET ----------------------------------------------
     draw_tileset(os.path.join(OUT, "tileset-atlas-map.png"))
+    draw_projection_sheet(os.path.join(OUT, "projection-3q-spec.png"))
 
     print("selesai →", OUT)
     for f in sorted(os.listdir(OUT)):

@@ -1,6 +1,6 @@
 # The End Has Come
 
-## Game Design Document v3.7 — Canonical
+## Game Design Document v3.8 — Canonical
 
 ### Survival Open World · Shelter · Singleplayer · Godot 4.4
 
@@ -44,7 +44,8 @@
 | 22 | **NPC rasa disimpan untuk pasca-1.0** (Q11) | §17.5, §17.9 |
 | 23 | **Template sprite & tileset siap pakai** di `docs/art/` | §17.10 |
 | 24 | **8 arah sprite** (bukan 4), digambar 5 baris + 3 mirror | §17.1, §17.3, §17.4, §17.8 |
-| 25 | **Proyeksi: Top-Down 3/4 dengan tinggi, bukan isometrik** | §17.11 (baru) |
+| 25 | **Proyeksi: Top-Down 3/4 dengan tinggi, bukan isometrik** | §17.11 |
+| 26 | **Kontrak proyeksi dikunci sebagai angka** + tes penerimaan aset | §17.12, `docs/art/projection-3q-spec.png` |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -206,7 +207,7 @@ Aturan spacing: distrik aman (Suburban) selalu bersebelahan dengan spawn; distri
 - Lantai: **maksimal 2 lantai**, naik lewat tangga. Lantai 2 memberi vantage point + loot lebih baik + jalur keluar.
 - Pintu & jendela adalah objek state: terbuka/tertutup/dibarricade/dirusak. Ini yang membuat shelter dan looting terasa fisik.
 - **Tidak ada loading screen** saat masuk bangunan — interior adalah bagian dari tilemap yang sama.
-- **Dinding punya muka setinggi 8–12 px** (wall face tile) + drop shadow di bawah karakter/prop, supaya bangunan terlihat punya tinggi tanpa memakai proyeksi isometrik (§17.11).
+- **Dinding punya muka 10 px** (wall face tile) + drop shadow di bawah karakter/prop, supaya bangunan terlihat punya tinggi tanpa proyeksi isometrik. Angka pastinya di §17.12.
 
 ### 4.4 Streaming & Simulasi
 
@@ -1113,13 +1114,15 @@ Aturan: pemain harus bisa mengenali **"pintu mana yang sedang dipukul"** dari su
 |------|------|---------|
 | Ground blob | 47 × 3 material = 141 | Contoh Suburban: rumput, tanah, aspal. Distrik lain boleh 2 material |
 | Sidewalk / tepi jalan | 16 | Match Sides |
-| Wall blob | 47 | 1 material eksterior per distrik (interior pakai overlay warna) |
+| Wall top blob | 47 | Permukaan atas dinding (yang terlihat dari kamera) |
+| **Wall face** | **16** | Muka dinding 10 px: depan, ujung, sudut dalam/luar — ini yang membuat dinding terlihat punya tinggi (§17.12) |
+| **Low wall / rail** | **6** | Muka 6 px, bisa dilewati peluru (pagar, tembok rendah, tiang) |
 | Roof | 15 | Hanya 1 sisi terlihat (top-down miring), di-fade saat pemain masuk bangunan |
 | Pintu | 12 | 3 material × 4 state (tertutup, terbuka, dibarricade, rusak) |
 | Jendela | 8 | 2 material × 4 state (utuh, pecah, dibarricade, papan) |
 | Tangga | 4 | Naik/turun, 2 orientasi |
 | Dekorasi lantai | 20 | Karpet, retakan, darah kering, sampah |
-| **Subtotal** | **±263** | Muat di 1 atlas 1024 tile dengan sisa untuk ekspansi |
+| **Subtotal** | **±285** | Muat di 1 atlas 1024 tile dengan sisa untuk ekspansi |
 
 **Prop TIDAK masuk tileset distrik.** Prop disimpan di atlas bersama (`props_interior.png`, `props_exterior.png`) supaya bisa dipakai ulang di semua distrik — ini menghemat 40–60% pekerjaan prop:
 
@@ -1365,6 +1368,36 @@ Ini pendekatan yang dipakai Nuclear Throne, Hotline Miami, Darkwood, dan Project
 ```
 
 **Keputusan: tetap Top-Down dengan penambahan tinggi (3/4 look).** Isometrik tidak dipakai untuk game ini, dan alasannya dicatat di sini supaya tidak dibuka ulang tanpa data baru.
+
+### 17.12 Kontrak Proyeksi Top-Down 3/4 (DIKUNCI)
+
+Keputusan D22 dikunci di sini sebagai **angka**, bukan sebagai selera. Lembar visualnya: `docs/art/projection-3q-spec.png`.
+
+| Aturan | Nilai | Alasan |
+|--------|-------|--------|
+| Tile | **16×16 persegi, tanpa rotasi kamera** | Collision AABB, autotile native, pathfinding langsung |
+| Muka dinding eksterior | **10 px** (6 px atas + 10 px muka) | Memberi rasa tinggi tanpa proyeksi diagonal |
+| Muka dinding rendah / pagar | **6 px** | Bisa dilewati peluru, tetap terbaca punya volume |
+| Atap | **alpha 0,25–0,35** saat pemain di dalam footprint | Tidak pernah menutupi pemain (larangan oklusi) |
+| Shadow karakter | **ellipse 32×14, offset (0, −2), alpha 45%** | Karakter tidak terlihat mengambang |
+| Y-sort key | **titik kaki (pivot 8,23)** — bukan tengah sprite | Urutan gambar benar saat pemain di belakang meja |
+| Perspective scaling | **TIDAK ADA.** Objek di "atas" layar tidak mengecil | Menjaga keterbacaan & ukuran sprite konsisten |
+| Arah sprite | 8 arah, 5 baris digambar + 3 mirror (§17.3) | Konsisten dengan gerak 8 arah |
+
+**Tes penerimaan aset (dipakai saat review seni, bukan selera):**
+
+```text
+□ Tanpa shadow, apakah karakter terlihat mengambang?           → harus TIDAK
+□ Apakah dinding terbaca punya tinggi dari 4 sisi kamera?      → harus YA (muka terlihat)
+□ Apakah ada tile/objek yang menutupi kepala pemain?           → harus TIDAK
+□ Apakah sprite di bagian atas layar terlihat lebih kecil?     → harus TIDAK
+□ Apakah dua karakter bertumpuk punya urutan benar via kaki?   → harus YA
+□ Apakah bentuk tile konsisten persegi (tidak ada belah ketupat)? → harus YA
+```
+
+Aset yang gagal di salah satu baris di atas **dikembalikan ke artist**, bukan "diperbaiki nanti di engine". Satu tile isometrik yang lolos ke atlas akan memaksa kompromi di collision dan culling, dan itu biaya yang jauh lebih besar daripada menggambar ulang 1 tile.
+
+**Yang secara sadar TIDAK kita dapat** (supaya tidak ada ekspektasi salah): tidak ada bayangan panjang dari matahari, tidak ada parallax gedung tinggi, tidak ada rotasi kamera, tidak ada objek yang saling menutupi secara diagonal. Kalau salah satu ini ternyata sangat dibutuhkan, itu tanda bahwa proyeksi perlu dibuka kembali lewat §17.11 — dengan greybox 2 hari + 5 tester, bukan dengan menambal satu aset.
 
 ### 17.10 Template Aset Siap Pakai
 
@@ -1635,12 +1668,14 @@ NIGHT RAID (§7.5)
   Horde night: cache minimum Gold
 
 ASET (§17)
-  Tile 16×16 · karakter 16×24 (pivot 8,23) · collision pemain 10×10
+  PROYEKSI: Top-Down 3/4 DIKUNCI (§17.12) — tanpa rotasi kamera, tanpa perspective scaling
+  Tile 16×16 · wall face 10 px · roof fade 0,25–0,35 · shadow 32×14 alpha 45%
+  Karakter 16×24 (pivot 8,23) · collision pemain 10×10
   Arah: 8 (digambar 5 baris, mirror: SE→SW · E→W · NE→NW)
   Player 240 frame di atlas / 150 digambar
   Zombie humanoid 128 di atlas / 80 digambar per tipe → 7 tipe ±595 digambar
   Boss 30 · NPC trader 8
-  Tileset/distrik ±260 tile (prop di atlas bersama) · 5 layer TileMapLayer
+  Tileset/distrik ±285 tile (termasuk wall face 16 + low wall 6) · 5 layer TileMapLayer
   1 artist: 2,5 minggu/distrik → 5 distrik ±26 minggu (jalur kritis)
 
 EKONOMI
@@ -1860,7 +1895,7 @@ Per run:   hari bertahan, penyebab mati, jarak dari shelter saat mati, corpse ba
 | D19 | Spesifikasi aset | **Tileset 16×16 per distrik (±263 tile), karakter 16×24, 8 arah (5 digambar + 3 mirror)** | §17. Tambahan ±3 minggu seni untuk 8 arah (§17.8) |
 | D20 | NPC | **Trader saja (2 lokasi, statis)**. NPC rasa ditunda ke pasca-1.0 | Tanpa companion AI. NPC bergerak = +4–6 minggu (§17.5) |
 | D21 | Sumber seni | **1 artist kontrak 5–6 bulan** (Q10) | Karakter wajib custom; tileset komersial boleh untuk ground/wall (§17.9) |
-| D22 | Proyeksi kamera | **Top-Down 3/4 dengan tinggi** (wall face, roof fade, shadow) | Isometrik ditolak: area pandang separuh, okclusion, +20–35 minggu (§17.11) |
+| D22 | Proyeksi kamera | **DIKUNCI: Top-Down 3/4** — tile 16×16, wall face 10 px, roof fade, shadow; tanpa perspective scaling | Kontrak angka + tes penerimaan di §17.12. Isometrik ditolak: area pandang separuh, okclusion, +20–35 minggu (§17.11) |
 
 ### 24.2 Masih terbuka (jawab sebelum Phase 1 selesai)
 

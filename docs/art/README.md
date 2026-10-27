@@ -1,6 +1,6 @@
 # Template Aset — The End Has Come
 
-Lembar kerja sprite & tileset sesuai spesifikasi §17 GDD (v3.6) — **8 arah**, 5 baris digambar + 3 baris mirror.
+Lembar kerja sprite & tileset sesuai spesifikasi §17 GDD (v3.8) — **proyeksi Top-Down 3/4 (dikunci)** dan **8 arah** (5 baris digambar + 3 mirror).
 
 ## Berkas
 
@@ -12,9 +12,12 @@ Lembar kerja sprite & tileset sesuai spesifikasi §17 GDD (v3.6) — **8 arah**,
 | `zombie-sheet-1x.png` | Kanvas transparan **256×192 px** | Digambar di Aseprite |
 | `npc-trader-sheet-guide.png` | Trader: 8 kolom × 2 baris | Brief ke artist |
 | `npc-trader-sheet-1x.png` | Kanvas transparan 128×48 px | Digambar di Aseprite |
-| `tileset-atlas-map.png` | Peta atlas 32×32 sel (512×512 px) + pembagian region | Brief ke artist |
+| `tileset-atlas-map.png` | Peta atlas 32×32 sel (512×512 px) + pembagian region, termasuk wall face | Brief ke artist |
+| `projection-3q-spec.png` | **Kontrak proyeksi**: anatomi tile dinding, penampang, BOLEH vs JANGAN | Wajib dibaca sebelum menggambar apa pun |
 
 ## Aturan pakai
+
+0. **Baca `projection-3q-spec.png` lebih dulu.** Proyeksi dikunci top-down 3/4: tile 16×16, muka dinding 10 px, atap di-fade, shadow 32×14, **tanpa** perspective scaling. Aset yang melanggar tes penerimaan §17.12 dikembalikan, bukan ditambal di engine.
 
 1. **Sel = 16×24 px** untuk semua karakter. Jangan mengubah ukuran sel; semua kode animasi mengasumsikan grid ini.
 2. **Pivot `(8, 23)`** — 1 px di atas tepi bawah sel. Tanda `+` hijau di lembar guide menunjuk titik ini. Kaki karakter menyentuh baseline.
