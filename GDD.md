@@ -1,6 +1,6 @@
 # The End Has Come
 
-## Game Design Document v3.4 — Canonical
+## Game Design Document v3.5 — Canonical
 
 ### Survival Open World · Shelter · Singleplayer · Godot 4.4
 
@@ -40,6 +40,9 @@
 | 18 | **Fatigue = −15% stamina saja** (Q9) | §7.5, §20 |
 | 19 | **Spesifikasi tileset & sprite** (player, zombie, NPC, prop, UI, import Godot) | §17 (ditulis ulang) |
 | 20 | **Seni = jalur kritis**: 5 distrik butuh ±26 minggu kerja 1 artist | §17.8, §21 |
+| 21 | **Sumber seni: 1 artist kontrak**, karakter wajib custom (Q10) | §17.9 |
+| 22 | **NPC rasa disimpan untuk pasca-1.0** (Q11) | §17.5, §17.9 |
+| 23 | **Template sprite & tileset siap pakai** di `docs/art/` | §17.10 |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -1195,7 +1198,7 @@ Keputusan scope: **NPC = trader saja** (2 lokasi, §11.3). Tidak ada companion A
 | Trader B (Commercial Market) | 16×24 | 8 | idem, palet & pakaian beda |
 | Props trader | 16×32 | — | Meja, tenda, kotak dagangan, papan harga |
 
-**"NPC rasa" tanpa AI (opsional, murah):** 3–5 sosok statis di landmark — duduk, sudah mati, atau membelakangi player sambil memegang catatan. Tidak bisa diajak bicara; hanya memberi cerita lewat posisi. Biaya: 1 frame per sosok + 1 prop. Kalau waktu seni mepet, **ini yang pertama dipotong**, karena tidak mengubah gameplay.
+**"NPC rasa" tanpa AI (ditunda ke pasca-1.0, Q11):** 3–5 sosok statis di landmark — duduk, sudah mati, atau membelakangi player sambil memegang catatan. Tidak bisa diajak bicara; hanya memberi cerita lewat posisi. Biaya: 1 frame per sosok + 1 prop. Bukan dipotong permanen — disimpan untuk pengembangan setelah 1.0, karena tidak mengubah gameplay dan tidak boleh menahan jadwal.
 
 > **Catatan penting:** dokumen ini mengunci NPC ke trader. Kalau kamu ingin NPC yang bergerak, berdagang sambil berjalan, atau menemani — itu sistem baru (pathfinding, jadwal, dialog, state) dan menambah ±4–6 minggu. Belum ada di scope; kalau diinginkan, harus diputuskan sebelum Phase 4.
 
@@ -1277,7 +1280,21 @@ Art adalah **jalur kritis** proyek ini, bukan coding. Konsekuensi yang harus dit
 
 **Aturan placeholder:** semua placeholder harus punya ukuran canvas, pivot, dan nama animasi **yang sama** dengan seni final. Kalau tidak, penggantian seni nanti akan memakan waktu coding yang tidak direncanakan.
 
-**Opsi sumber seni** (diputuskan sebelum Phase 2): (a) 1 pixel artist kontrak 5–6 bulan, (b) 2 artist paruh waktu, (c) beli tileset komersial + custom hanya untuk karakter (paling murah, tapi gaya campur berisiko). Rekomendasi: **(a)**, dengan karakter custom adalah prioritas tertinggi — tileset komersial bisa ditoleransi, karakter tidak.
+**Opsi sumber seni:** **1 pixel artist kontrak 5–6 bulan** (diputuskan, Q10). Tileset komersial boleh dipakai untuk ground/wall bila perlu, **karakter wajib custom** — gaya campur pada karakter langsung terasa murah. NPC rasa (Q11) **disimpan untuk pengembangan pasca-1.0**, bukan dipotong permanen.
+
+### 17.10 Template Aset Siap Pakai
+
+Lembar kerja sudah dibuat dan ikut di repo:
+
+| Berkas | Isi |
+|--------|-----|
+| `docs/art/player-sheet-guide.png` | Berlabel: 30×4 sel, pivot, nama animasi, FPS |
+| `docs/art/player-sheet-1x.png` | Kanvas bersih 480×96 px (untuk Aseprite) |
+| `docs/art/zombie-sheet-guide.png` · `zombie-sheet-1x.png` | Base body walker, 16×4 sel, 256×96 px |
+| `docs/art/npc-trader-sheet-guide.png` · `npc-trader-sheet-1x.png` | Trader, 8×2 sel, 128×48 px |
+| `docs/art/tileset-atlas-map.png` | Peta atlas 32×32 sel + pembagian region |
+
+Aturan pemakaian ada di `docs/art/README.md`. Lembar ini **deterministik**: dibuat ulang dari `tools/make_asset_templates.py` — kalau spesifikasi §17 berubah, ubah script, jangan gambar ulang manual.
 
 ---
 
@@ -1755,7 +1772,8 @@ Per run:   hari bertahan, penyebab mati, jarak dari shelter saat mati, corpse ba
 | D17 | Berat senjata & armor | **Dihitung semua, termasuk slot hotbar** (Q8) | 4 senjata + vest + helm = 17 kg sebelum loot (§8.5 aturan 6) |
 | D18 | Penalti Fatigue | **−15% stamina maks saja, 1 hari** (Q9) | Tidak ada penalti hunger/thirst; shelter damage sudah jadi penalti utama |
 | D19 | Spesifikasi aset | **Tileset 16×16 per distrik (±263 tile), karakter 16×24, 4 arah, prop di atlas bersama** | §17. Detail frame, atlas, import, dan aturan keterbacaan |
-| D20 | NPC | **Trader saja (2 lokasi, statis)** + opsional "NPC rasa" 1 frame | Tanpa companion AI. Menambah NPC bergerak = +4–6 minggu (§17.5) |
+| D20 | NPC | **Trader saja (2 lokasi, statis)**. NPC rasa ditunda ke pasca-1.0 | Tanpa companion AI. NPC bergerak = +4–6 minggu (§17.5) |
+| D21 | Sumber seni | **1 artist kontrak 5–6 bulan** (Q10) | Karakter wajib custom; tileset komersial boleh untuk ground/wall (§17.9) |
 
 ### 24.2 Masih terbuka (jawab sebelum Phase 1 selesai)
 
@@ -1763,8 +1781,6 @@ Per run:   hari bertahan, penyebab mati, jarak dari shelter saat mati, corpse ba
 |---|-----------|-------------------|----------------|
 | Q4 | Skill tree respec: gratis 1× atau berbayar? | Berbayar (1 rare item) | Menentukan seberapa berani pemain bereksperimen |
 | Q6 | Apakah perlu kesulitan "story mode" (serangan 0,6×)? | Ada sebagai aksesibilitas, tanpa skor | Ramah pemain baru |
-| Q10 | Sumber seni: 1 artist kontrak, 2 artist, atau beli tileset komersial? | **1 artist kontrak 5–6 bulan**, tileset komersial boleh, karakter wajib custom | Menentukan apakah EA minggu 28 realistis (§17.8) |
-| Q11 | NPC rasa (sosok statis di landmark) dikerjakan atau dipotong? | Dikerjakan **kalau** waktu seni tersisa; pertama dipotong | Tidak mengubah gameplay; murni atmosfer |
 
 ---
 
