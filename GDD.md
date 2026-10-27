@@ -1,6 +1,6 @@
 # The End Has Come
 
-## Game Design Document v3.8 — Canonical
+## Game Design Document v3.9 — Canonical
 
 ### Survival Open World · Shelter · Singleplayer · Godot 4.4
 
@@ -46,6 +46,7 @@
 | 24 | **8 arah sprite** (bukan 4), digambar 5 baris + 3 mirror | §17.1, §17.3, §17.4, §17.8 |
 | 25 | **Proyeksi: Top-Down 3/4 dengan tinggi, bukan isometrik** | §17.11 |
 | 26 | **Kontrak proyeksi dikunci sebagai angka** + tes penerimaan aset | §17.12, `docs/art/projection-3q-spec.png` |
+| 27 | **Prototipe greybox 1 ruangan** ada di repo (`game/`) | §21B, `game/README.md` |
 
 ### 0.3 Yang sengaja dipertahankan dari v3.1
 
@@ -1804,6 +1805,27 @@ Gate: 20 tester, funnel hari-5 ≥50%, tidak ada save corruption
 | Mobile / console day-one | ⏸ pasca-1.0 |
 | Mod support | ⏸ pasca-1.0 |
 | Kereta dorong | ⏸ **opsional** — dipotong kalau Phase 2 mepet (Q7/D16) |
+
+---
+
+## 21B. Prototipe Greybox (kode di repo)
+
+Greybox 1 ruangan sudah ada di `game/` untuk menguji kontrak desain **sebelum** satu pixel seni final. Bukan demo, bukan vertical slice — alat verifikasi.
+
+| Diuji di greybox | Status | Bukti lulus/gagal |
+|------------------|--------|-------------------|
+| 8 arah sprite (5 digambar + 3 mirror) | sudah | Arah hadap mengikuti gerak; mirror tidak terlihat aneh |
+| Pivot (8,23) + collision 10×10 di kaki | sudah | Pemain tidak mentok di lorong 1 tile |
+| **Berat → kecepatan** (4 ambang) + Drop & Run | sudah | Saat Kelebihan, Runner (96 px/s) menangkap pemain (52 px/s) |
+| Lampu → baterai → heat → serangan | sudah | Mematikan lampu menurunkan heat & frekuensi serangan |
+| Siklus siang–malam memanjang | sudah | Malam hari 5 terasa jelas lebih panjang |
+| Wall face 10 px + roof fade | sudah | Bangunan terbaca punya tinggi; pemain tidak tertutup atap |
+| Walker chase + attack + LOS | sudah | Tidak ada serangan menembus dinding |
+| **Belum**: menembak, navmesh, inventory, crafting, hunger/thirst | — | Phase 1–2 (§21) |
+
+**Aturan pemakaian:** angka di `game/scripts/autoload/tuning.gd` mengikuti §20. Yang dipendekkan hanya durasi fase (siang 120 s, malam 30 s) agar bisa dites dalam 2 menit. **Jangan menaikkan angka produksi karena greybox terasa enak** — kalau ada yang perlu diubah, ubah §20 dulu beserta alasannya.
+
+**Batas jujur:** kode greybox ditulis tanpa bisa menjalankan engine di lingkungan ini; verifikasi yang tersedia adalah `tools/lint_gdscript.py` (kurung, indentasi, path aset, nama signal & konstanta, fungsi ganda). Rincian batasan dan kontrol ada di `game/README.md`.
 
 ---
 

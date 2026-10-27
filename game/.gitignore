@@ -1,0 +1,3 @@
+# cache importer Godot — jangan di-commit
+.godot/
+*.import
